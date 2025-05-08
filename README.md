@@ -12,14 +12,118 @@
 
 [![Project generated with PyScaffold](https://img.shields.io/badge/-PyScaffold-005CA0?logo=pyscaffold)](https://pyscaffold.org/)
 
-# uniovi-simur-wearablepermed-ml
+# Description
 
 > Uniovi Simur WearablePerMed Machine Learning.
 
-A longer description of your project goes here...
-
 
 <!-- pyscaffold-notes -->
+
+## Scaffold your project from scratch
+
+- **STEP01**: Install PyScaffold and pyscaffoldext-markdown extension
+
+     - You can install PyScaffold and extensions globally in your systems but ins recomendes use a virtual environment:
+
+          Craate a temp folder and use a virtual environment to install PyScaffold tool and scaffold your project. Later will copy the results under the final git folder and remove the last temporal one:
+
+          ```
+          $ mkdir temp
+          $ cd temp
+          $ python3 -m venv .venv
+          $ source .venv/bin/activate
+          $ pip install pyscaffold
+          $ pip install pyscaffoldext-markdown
+          $ putup --markdown uniovi-simur-wearablepermed-ml -p wearablepermed_ml \
+               -d "Uniovi Simur WearablePerMed ML." \
+               -u https://github.com/Simur-project/uniovi-simur-wearablepermed-ml.git
+          $ deactivate               
+          ```
+
+     - Also you can install **pyscaffold** and **pyscaffoldext-markdown** packages in your system and avoid the error from Python 3.11+: ```"error-externally-managed-environment" this environemnt is externally managed``` you can execute this command to force instalation:
+
+          ```
+          $ pip3 install pyscaffold --break-system-packages
+          $ pip3 install pyscaffoldext-markdown --break-system-packages
+          $ putup --markdown uniovi-simur-wearablepermed-ml -p wearablepermed_ml \
+               -d "Uniovi Simur WearablePerMed ML." \
+               -u https://github.com/Simur-project/uniovi-simur-wearablepermed-ml.git
+          ```
+
+          or permanent configure pip3 with this command to avoid the previous errors from 3.11+
+
+          ```
+          $ python3 -m pip config set global.break-system-packages true
+          ```
+
+- **STEP02**: creare your repo under SIMUR Organization with the name **uniovi-simur-wearablepermed-hmc** and clone the previous scaffoled project
+
+     ```
+     $ cd git
+     $ git clone https://github.com/Simur-project/uniovi-simur-wearablepermed-ml.git
+     ```
+
+- **STEP03**: copy PyScaffold project to your git folder without .venv folder
+
+- **STEP04**: install tox project manager used by PyScaffold. Install project dependencies
+     ```
+     $ python3 -m venv .venv
+     $ source .venv/bin/activate
+     $ pip install tox
+     $ pip install pandas
+     $ pip install matplotlib
+     $ pip install openpyxl
+     $ tox list
+     ```
+
+     Installation your python pipeline packages in your virtual environment in development mode:
+
+     ```
+     $ pip freeze > requirements.txt
+     ```
+## Start develop your project
+- **STEP01**: Clone your project
+     ```
+     $ git clone https://github.com/Simur-project/uniovi-simur-wearablepermed-ml.git
+     ```
+
+- **STEP01**: Build and Debug your project
+     ```
+     $ tox list
+     default environments:
+     default   -> Invoke pytest to run automated tests
+
+     additional environments:
+     build     -> Build the package in isolation according to PEP517, see https://github.com/pypa/build
+     clean     -> Remove old distribution files and temporary build artifacts (./build and ./dist)
+     docs      -> Invoke sphinx-build to build the docs
+     doctests  -> Invoke sphinx-build to run doctests
+     linkcheck -> Check for broken links in the documentation
+     publish   -> Publish the package you have been developing to a package index server. By default, it uses testpypi. If you really want to publish your package to be publicly accessible in PyPI, use the `-- --repository pypi` option
+     ```
+
+     ```
+     $ tox -e clean
+     $ tox -e build
+     $ tox -e docs
+     ```
+
+- **STEP02 Build service**
+     ```
+     $ docker build -t uniovi-simur-wearablepermed-ml:1.0.0 .
+     ```
+
+- **STEP03: Tag service**
+     ```
+     $ docker tag uniovi-simur-wearablepermed-ml:1.0.0 ofertoio/uniovi-simur-wearablepermed-ml:1.0.0
+     ```
+
+- **STEP04: Publish service**
+     ```
+     $ docker logout
+     $ docker login
+     $ docker push ofertoio/uniovi-simur-wearablepermed-ml:1.0.0
+     ```
 
 ## Note
 
