@@ -56,7 +56,7 @@
           $ python3 -m pip config set global.break-system-packages true
           ```
 
-- **STEP02**: creare your repo under SIMUR Organization with the name **uniovi-simur-wearablepermed-hmc** and clone the previous scaffoled project
+- **STEP02**: creare your repo under SIMUR Organization with the name **uniovi-simur-wearablepermed-ml** and clone the previous scaffoled project
 
      ```
      $ cd git
