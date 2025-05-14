@@ -16,6 +16,21 @@
 
 > Uniovi Simur WearablePerMed Machine Learning.
 
+*********************************************************************
+* Pasos para lanzar el entrenamiento de un modelo de clasificación: *
+*********************************************************************
+
+1. Abrir el archivo "train_automatizado.py".
+
+2. Entre las líneas 27 y 37, descomentar el modelo de clasificación que se desea entrenar. Comentamos
+   el resto de modelos. Para una misma clase de modelo tenemos 3 posibilidades, en función de si
+   empleamos datos de muslo, muñeca o muslo+muñeca durante el entrenamiento.
+
+3. Ejecutar el archivo "train_automatizado.py". Este código ya empleará el resto de dependencias auxiliares:
+   Datareader, modelGenerator, etc.
+
+Como resultado se guardará el modelo entrenado en formato ".h5" (para las CNNs) o ".pkl" (para RandomForest y XGBoost).
+Estos modelos pueden cargarse para estudiar resultados en la fase de test mediante el fichero "scriptResults_v2.ipynb".
 
 <!-- pyscaffold-notes -->
 

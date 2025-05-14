@@ -18,6 +18,7 @@ imagesize==1.4.1
 importlib-metadata==8.5.0
 importlib-resources==6.4.5
 jinja2==3.1.6
+keras==2.15.0
 kiwisolver==1.4.7
 linkify-it-py==2.0.3
 markdown-it-py==3.0.0
