@@ -32,6 +32,54 @@
 Como resultado se guardará el modelo entrenado en formato ".h5" (para las CNNs) o ".pkl" (para RandomForest y XGBoost).
 Estos modelos pueden cargarse para estudiar resultados en la fase de test mediante el fichero "scriptResults_v2.ipynb".
 
+Fragmento del pipeline:
+
+**********************************           **********************************
+* Stack de datos/características *  -------> *    Modelos de clasificación    *
+**********************************           **********************************
+
+
+-------------------------------------------------------
+- Repositorio Machine Learning (desarrollosPMP_SiMuR) -
+-------------------------------------------------------
+
+Árbol de directorios:
+
+/Raíz (desarrollosPMP_SiMuR)
+|
+…
+|
+|-- modelGenerator.py
+|-- train_automatizado.py (PROGRAMA PRINCIPAL)
+|-- Models
+|	|
+|	|-- SiMuRModel.py  (Implementación de las clases, junto con sus métodos, asociada a cada modelo)
+|	|-- *.h5, *.pkl    (Se generan tras entrenar cada modelo)
+|	|-- __init__.py
+|
+|-- scriptResults_v2.ipynb (Resultados en la etapa de test para los modelos entrenados)
+|-- train_hyperparameter_searching_v2.py (Búsqueda de hiperparámetros óptimos de cada modelo, empleando
+					  el algoritmo ASHA).
+
+
+*******************************************
+*       Contenido de SiMuRModel.py        *
+*******************************************
+
+1 clase para cada modelo de clasificación:
+	class SiMuRModel_ESANN        (Red Neuronal Convolucional, CNN)
+	class SiMuRModel_CAPTURE24    (CNN de arquitectura más compleja)
+	class SiMuRModel_RandomForest (Balanced Random Forest)
+	class SiMuRModel_XGBoost <---- Tengo que actualizarlo en GitHub, lo tengo local en mi PC.
+
+Cada modelo para datos de:
+	* thigh (muslo).
+	* wrist (muñeca).
+	* thigh + wrist (muslo + muñeca).
+
+En "train_automatizado.py" se crea un objeto de cada clase y se lanza el entrenamiento del modelo
+de clasificación.
+
 <!-- pyscaffold-notes -->
 
 ## Scaffold your project from scratch
