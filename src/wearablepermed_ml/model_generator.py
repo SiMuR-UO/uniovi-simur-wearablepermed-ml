@@ -55,7 +55,6 @@ def modelGenerator(modelID:str, data, params:dict={}, verbose=False, debug=False
         model = None
         raise Exception("Model not implemented")
     return model
-    
 
 # Unit testing
 if __name__ == "__main__": 
