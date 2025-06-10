@@ -18,7 +18,6 @@ import math
 # import ahrs
 # from ahrs.filters import Madgwick
 
-
 class SiMuRModel_ESANN(object):
     def __init__(self, data, params: dict, **kwargs) -> None:
         
@@ -166,7 +165,6 @@ class SiMuRModel_ESANN(object):
     @classmethod
     def get_model_Obj(cls):
         return SiMuRModel_ESANN
-
 
 class SiMuRModel_CAPTURE24(object):
     def __init__(self, data, params: dict, **kwargs) -> None:
@@ -365,8 +363,6 @@ class SiMuRModel_CAPTURE24(object):
     @classmethod
     def get_model_Obj(cls):
         return SiMuRModel_CAPTURE24
-
-
 
 class SiMuRModel_RandomForest(object):
     def __init__(self, data, params: dict, **kwargs) -> None:
@@ -792,8 +788,6 @@ class SiMuRModel_RandomForest(object):
 ##########################################
 # Unit testing
 ##########################################
-
-
 if __name__ == "__main__":
     # Este código solo se ejecuta si el script de ejecución principal es BaseModel.py:
     #   run BaseModel.py
