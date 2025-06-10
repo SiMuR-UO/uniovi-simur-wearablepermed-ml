@@ -1,3 +1,4 @@
+import os
 from Data import DataReader
 from model_generator import modelGenerator
 from address import *
