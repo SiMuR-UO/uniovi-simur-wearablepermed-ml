@@ -23,7 +23,7 @@ if __name__ == "__main__":
     modelID_RandomForest_data_wrist = "SiMuRModel_RandomForest_data_wrist"
     
     
-    # Comentar y desomentar las siguientes líneas para entrenar uno u otro modelo de clasificación:
+    # Comentar y descomentar las siguientes líneas para entrenar uno u otro modelo de clasificación:
     modelID = modelID_ESANN_data_tot
     # modelID = modelID_ESANN_data_thigh
     # modelID = modelID_ESANN_data_wrist
