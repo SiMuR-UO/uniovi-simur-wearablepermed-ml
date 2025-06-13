@@ -1,3 +1,5 @@
+import math
+import joblib # Librería empleada para guardar y cargar los modelos Random Forests
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
 import tensorflow as tf
@@ -5,14 +7,11 @@ from tensorflow import layers, models, regularizers
 import keras
 # from sklearn.ensemble import RandomForestClassifier
 from imblearn.ensemble import BalancedRandomForestClassifier
-import joblib # Librería empleada para guardar y cargar los modelos Random Forests
-
-import funciones_caracteristicas_RandomForest
 
 from scipy.signal import find_peaks
 from statsmodels.tsa.stattools import acf
 
-import math
+import funciones_caracteristicas_RandomForest
 
 # Librerías necesarias para implementar el algoritmo de fusión sensorial ahsr
 # import ahrs 
