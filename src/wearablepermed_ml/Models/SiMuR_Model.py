@@ -15,7 +15,7 @@ from statsmodels.tsa.stattools import acf
 import math
 
 # Librerías necesarias para implementar el algoritmo de fusión sensorial ahsr
-# import ahrs
+# import ahrs 
 # from ahrs.filters import Madgwick
 
 class SiMuRModel_ESANN(object):
