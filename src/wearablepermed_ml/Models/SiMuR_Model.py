@@ -791,6 +791,5 @@ if __name__ == "__main__":
     # Este código solo se ejecuta si el script de ejecución principal es BaseModel.py:
     #   run BaseModel.py
     
-    # Aquí se puede escribir un código de prueba para probar por separado 
-    
+    # Aquí se puede escribir un código de prueba para probar por separado     
     pass

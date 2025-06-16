@@ -4,7 +4,6 @@ path_here = os.path.abspath('')
 dataset_dir = str(path_here)+'/Data/'
 results_grid_search = str(path_here)+'/Results/Params/'
 path_results_metrics = str(path_here)+'/Results/'
-# path_models = str(path_here)+'/Paper_29_01_2025/Models/'
 path_models = str(path_here)+'/Models/'
 
 def get_param_path(modelID):
