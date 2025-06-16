@@ -420,7 +420,7 @@ class SiMuRModel_RandomForest(object):
                 # Extraemos la serie temporal de longitud 250
                 serie = data.X_train[i, j, :]
                 # Calculamos las características espectrales
-                resultado_armonicos,_ = funciones_caracteristicas_RandomForest.obtener_caracteristicas_espectrales(serie,25)
+                resultado_armonicos,_ = _spectral_features_calculator.obtener_caracteristicas_espectrales(serie,25)
                 # Guardamos los resultados en las matrices correspondientes
                 # f1_mat[i, j]      = f1
                 # p1_mat[i, j]      = p1
@@ -597,7 +597,7 @@ class SiMuRModel_RandomForest(object):
                 # Extraemos la serie temporal de longitud 250
                 serie = data.X_train[i, j, :]
                 # Calculamos las características espectrales
-                resultado_armonicos,_ = funciones_caracteristicas_RandomForest.obtener_caracteristicas_espectrales(serie,25)
+                resultado_armonicos,_ = _spectral_features_calculator.obtener_caracteristicas_espectrales(serie,25)
                 armonicos_totales[j, :] = resultado_armonicos
             armonicos_totales_2 = np.reshape(armonicos_totales,(1,-1))
             matriz_resultados_armonicos[i,:] = armonicos_totales_2
