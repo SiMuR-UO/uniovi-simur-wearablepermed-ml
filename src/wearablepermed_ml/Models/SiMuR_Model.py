@@ -11,7 +11,7 @@ from imblearn.ensemble import BalancedRandomForestClassifier
 from scipy.signal import find_peaks
 from statsmodels.tsa.stattools import acf
 
-import funciones_caracteristicas_RandomForest
+import _spectral_features_calculator
 
 # Librerías necesarias para implementar el algoritmo de fusión sensorial ahsr
 # import ahrs 
