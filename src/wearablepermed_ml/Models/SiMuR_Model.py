@@ -3,7 +3,7 @@ import joblib # Librería empleada para guardar y cargar los modelos Random Fore
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
 import tensorflow as tf
-from tensorflow import layers, models, regularizers
+from tensorflow.keras import layers, models, regularizers
 import keras
 # from sklearn.ensemble import RandomForestClassifier
 from imblearn.ensemble import BalancedRandomForestClassifier
