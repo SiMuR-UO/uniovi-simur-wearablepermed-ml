@@ -1,3 +1,5 @@
+import math
+import joblib # Librería empleada para guardar y cargar los modelos Random Forests
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
 import tensorflow as tf
@@ -5,17 +7,14 @@ from tensorflow import layers, models, regularizers
 import keras
 # from sklearn.ensemble import RandomForestClassifier
 from imblearn.ensemble import BalancedRandomForestClassifier
-import joblib # Librería empleada para guardar y cargar los modelos Random Forests
-
-import funciones_caracteristicas_RandomForest
 
 from scipy.signal import find_peaks
 from statsmodels.tsa.stattools import acf
 
-import math
+#import _spectral_features_calculator
 
 # Librerías necesarias para implementar el algoritmo de fusión sensorial ahsr
-# import ahrs
+# import ahrs 
 # from ahrs.filters import Madgwick
 
 class SiMuRModel_ESANN(object):
@@ -382,341 +381,341 @@ class SiMuRModel_RandomForest(object):
         #         data.X_Test
         #         data.Y_Test
         
-        # Obtención de características de X_train
-        # -----------------------------------------
+        # # Obtención de características de X_train
+        # # -----------------------------------------
         
-        # ***************
-        # 1.- Cuantiles *
-        # ***************
-        # El vector de características empleado en el entrenamiento del Random-Forest será:
-        # [Mín, Máx, Mediana, Percentil 25,Percentil 75] para Acc_X, Acc_Y, Acc_Z, Gyr_X, Gyr_Y, Gyr_Z, Acc, Gyr.
-        # self.X_train = data.X_train
-        minimos_train = np.quantile(data.X_train, 0, axis=2, keepdims=True)
-        maximos_train = np.quantile(data.X_train, 1, axis=2, keepdims=True)
-        medianas_train = np.quantile(data.X_train, 0.5, axis=2, keepdims=True)
-        Percentil_25_train = np.quantile(data.X_train, 0.25, axis=2, keepdims=True)
-        Percentil_75_train = np.quantile(data.X_train, 0.75, axis=2, keepdims=True)
-        Matriz_de_cuantiles_train = np.hstack((minimos_train, maximos_train, medianas_train, Percentil_25_train, Percentil_75_train))
-        Matriz_de_cuantiles_train = np.squeeze(Matriz_de_cuantiles_train, axis=2)
+        # # ***************
+        # # 1.- Cuantiles *
+        # # ***************
+        # # El vector de características empleado en el entrenamiento del Random-Forest será:
+        # # [Mín, Máx, Mediana, Percentil 25,Percentil 75] para Acc_X, Acc_Y, Acc_Z, Gyr_X, Gyr_Y, Gyr_Z, Acc, Gyr.
+        # # self.X_train = data.X_train
+        # minimos_train = np.quantile(data.X_train, 0, axis=2, keepdims=True)
+        # maximos_train = np.quantile(data.X_train, 1, axis=2, keepdims=True)
+        # medianas_train = np.quantile(data.X_train, 0.5, axis=2, keepdims=True)
+        # Percentil_25_train = np.quantile(data.X_train, 0.25, axis=2, keepdims=True)
+        # Percentil_75_train = np.quantile(data.X_train, 0.75, axis=2, keepdims=True)
+        # Matriz_de_cuantiles_train = np.hstack((minimos_train, maximos_train, medianas_train, Percentil_25_train, Percentil_75_train))
+        # Matriz_de_cuantiles_train = np.squeeze(Matriz_de_cuantiles_train, axis=2)
         
-        # *********************************
-        # 2.- Características espectrales *
-        # *********************************
-        # Inicializamos las matrices de resultados
-        num_filas = (data.X_train).shape[0]  # 27190
-        num_columnas = (data.X_train).shape[1]  # 12
-        # f1_mat      = np.zeros((num_filas, num_columnas))
-        # p1_mat      = np.zeros((num_filas, num_columnas))
-        # f2_mat      = np.zeros((num_filas, num_columnas))
-        # p2_mat      = np.zeros((num_filas, num_columnas))
-        # entropy_mat = np.zeros((num_filas, num_columnas))
+        # # *********************************
+        # # 2.- Características espectrales *
+        # # *********************************
+        # # Inicializamos las matrices de resultados
+        # num_filas = (data.X_train).shape[0]  # 27190
+        # num_columnas = (data.X_train).shape[1]  # 12
+        # # f1_mat      = np.zeros((num_filas, num_columnas))
+        # # p1_mat      = np.zeros((num_filas, num_columnas))
+        # # f2_mat      = np.zeros((num_filas, num_columnas))
+        # # p2_mat      = np.zeros((num_filas, num_columnas))
+        # # entropy_mat = np.zeros((num_filas, num_columnas))
         
-        matriz_resultados_armonicos = np.zeros((num_filas,30))   # 1 IMU
-        # matriz_resultados_armonicos = np.zeros((num_filas,60))   # 2 IMUs
-        # # Recorremos cada serie temporal y calculamos las características
-        for i in range(num_filas):   
-            armonicos_totales = np.zeros((6,5))    # 1 IMU
-            # armonicos_totales = np.zeros((12,5))    # 2 IMUs
-            for j in range(num_columnas):
-                # Extraemos la serie temporal de longitud 250
-                serie = data.X_train[i, j, :]
-                # Calculamos las características espectrales
-                resultado_armonicos,_ = funciones_caracteristicas_RandomForest.obtener_caracteristicas_espectrales(serie,25)
-                # Guardamos los resultados en las matrices correspondientes
-                # f1_mat[i, j]      = f1
-                # p1_mat[i, j]      = p1
-                # f2_mat[i, j]      = f2
-                # p2_mat[i, j]      = p2
-                # entropy_mat[i, j] = entropy
+        # matriz_resultados_armonicos = np.zeros((num_filas,30))   # 1 IMU
+        # # matriz_resultados_armonicos = np.zeros((num_filas,60))   # 2 IMUs
+        # # # Recorremos cada serie temporal y calculamos las características
+        # for i in range(num_filas):   
+        #     armonicos_totales = np.zeros((6,5))    # 1 IMU
+        #     # armonicos_totales = np.zeros((12,5))    # 2 IMUs
+        #     for j in range(num_columnas):
+        #         # Extraemos la serie temporal de longitud 250
+        #         serie = data.X_train[i, j, :]
+        #         # Calculamos las características espectrales
+        #         resultado_armonicos,_ = _spectral_features_calculator.obtener_caracteristicas_espectrales(serie,25)
+        #         # Guardamos los resultados en las matrices correspondientes
+        #         # f1_mat[i, j]      = f1
+        #         # p1_mat[i, j]      = p1
+        #         # f2_mat[i, j]      = f2
+        #         # p2_mat[i, j]      = p2
+        #         # entropy_mat[i, j] = entropy
                 
-                armonicos_totales[j, :] = resultado_armonicos
-            armonicos_totales_2 = np.reshape(armonicos_totales,(1,-1))
-            matriz_resultados_armonicos[i,:] = armonicos_totales_2
-        # self.X_train = np.hstack(Matriz_de_cuantiles_train, f1_mat, p1_mat, f2_mat, p2_mat, entropy_mat)
-        # aux = np.hstack((Matriz_de_cuantiles_train, matriz_resultados_armonicos))
+        #         armonicos_totales[j, :] = resultado_armonicos
+        #     armonicos_totales_2 = np.reshape(armonicos_totales,(1,-1))
+        #     matriz_resultados_armonicos[i,:] = armonicos_totales_2
+        # # self.X_train = np.hstack(Matriz_de_cuantiles_train, f1_mat, p1_mat, f2_mat, p2_mat, entropy_mat)
+        # # aux = np.hstack((Matriz_de_cuantiles_train, matriz_resultados_armonicos))
         
-        # *****************************************
-        # 3.- Número de picos y prominencia media *
-        # *****************************************
-        matriz_resultados_numero_picos = np.zeros((num_filas,12))   # 1 IMUs
-        # matriz_resultados_numero_picos = np.zeros((num_filas,24))   # 2 IMUs
+        # # *****************************************
+        # # 3.- Número de picos y prominencia media *
+        # # *****************************************
+        # matriz_resultados_numero_picos = np.zeros((num_filas,12))   # 1 IMUs
+        # # matriz_resultados_numero_picos = np.zeros((num_filas,24))   # 2 IMUs
+        # # # Recorremos cada serie temporal y calculamos los picos
+        # for i in range(num_filas):  
+        #     picos_totales = np.zeros(6)         # 1 IMU
+        #     prominencias_totales = np.zeros(6)  # 1 IMUs
+        #     # picos_totales = np.zeros(12)      # 2 IMUs
+        #     # prominencias_totales = np.zeros(12) # 2 IMUs
+        #     for j in range(num_columnas):
+        #         # Extraemos la serie temporal de longitud 250
+        #         serie = data.X_train[i, j, :]
+        #         # Calculamos las características espectrales
+        #         indices_picos, propiedades_picos = find_peaks(serie, prominence=True)
+        #         numero_picos=len(indices_picos)
+        #         if numero_picos > 0:
+        #             # Si se detectaron picos, podemos proceder con el cálculo
+        #             prominencias_picos = propiedades_picos['prominences']
+        #             # Por ejemplo, calcular la mediana de la prominencia de los picos
+        #             prominencia_media = np.median(prominencias_picos)
+        #             #print(f"Mediana de prominencia: {prominencia_media}")
+        #         else:
+        #             # prominencia_media = np.NaN
+        #             prominencia_media = 0
+                
+        #         #prominencias_picos = propiedades_picos['prominences']
+        #         # Guardamos los resultados en las matrices correspondientes
+        #         # f1_mat[i, j]      = f1
+        #         # p1_mat[i, j]      = p1
+        #         # f2_mat[i, j]      = f2
+        #         # p2_mat[i, j]      = p2
+        #         # entropy_mat[i, j] = entropy
+                
+        #         picos_totales[j] = numero_picos
+        #         prominencias_totales[j] = prominencia_media
+                
+        #     picos_totales_2 = np.reshape(picos_totales,(1,-1))
+        #     prominencias_totales_2 = np.reshape(prominencias_totales,(1,-1))
+        #     matriz_resultados_numero_picos[i,:] = np.hstack((picos_totales_2, prominencias_totales_2))
+        
+        # # *******************
+        # # 4.- Correlaciones *
+        # # *******************
+        # matriz_correlaciones = np.zeros((num_filas,15))  # 1 IMU
+        # # matriz_correlaciones = np.zeros((num_filas,66))  # 2 IMUs
+        # for i in range(num_filas):
+        #     # Calcular la matriz de correlación entre las filas
+        #     correlacion = np.corrcoef(data.X_train[i,:,:], rowvar=True)
+        #     # Extraer la parte superior de la matriz sin la diagonal principal
+        #     upper_triangle_values = correlacion[np.triu_indices_from(correlacion, k=1)]
+        #     # print(upper_triangle_values)
+            
+        #     matriz_correlaciones[i,:] = upper_triangle_values
+        # #self.X_train = np.hstack((Matriz_de_cuantiles_train, matriz_resultados_armonicos, matriz_resultados_numero_picos, matriz_correlaciones))
+        # #print(self.X_train)
+        
+        # # **************************************
+        # # 5.- Autocorrelación del acelerómetro *
+        # # **************************************
+        # matriz_resultados_autocorrelacion = np.zeros((num_filas, 1))
+        # # matriz_resultados_autocorrelacion = np.zeros((num_filas, 2))
         # # Recorremos cada serie temporal y calculamos los picos
-        for i in range(num_filas):  
-            picos_totales = np.zeros(6)         # 1 IMU
-            prominencias_totales = np.zeros(6)  # 1 IMUs
-            # picos_totales = np.zeros(12)      # 2 IMUs
-            # prominencias_totales = np.zeros(12) # 2 IMUs
-            for j in range(num_columnas):
-                # Extraemos la serie temporal de longitud 250
-                serie = data.X_train[i, j, :]
-                # Calculamos las características espectrales
-                indices_picos, propiedades_picos = find_peaks(serie, prominence=True)
-                numero_picos=len(indices_picos)
-                if numero_picos > 0:
-                    # Si se detectaron picos, podemos proceder con el cálculo
-                    prominencias_picos = propiedades_picos['prominences']
-                    # Por ejemplo, calcular la mediana de la prominencia de los picos
-                    prominencia_media = np.median(prominencias_picos)
-                    #print(f"Mediana de prominencia: {prominencia_media}")
-                else:
-                    # prominencia_media = np.NaN
-                    prominencia_media = 0
-                
-                #prominencias_picos = propiedades_picos['prominences']
-                # Guardamos los resultados en las matrices correspondientes
-                # f1_mat[i, j]      = f1
-                # p1_mat[i, j]      = p1
-                # f2_mat[i, j]      = f2
-                # p2_mat[i, j]      = p2
-                # entropy_mat[i, j] = entropy
-                
-                picos_totales[j] = numero_picos
-                prominencias_totales[j] = prominencia_media
-                
-            picos_totales_2 = np.reshape(picos_totales,(1,-1))
-            prominencias_totales_2 = np.reshape(prominencias_totales,(1,-1))
-            matriz_resultados_numero_picos[i,:] = np.hstack((picos_totales_2, prominencias_totales_2))
-        
-        # *******************
-        # 4.- Correlaciones *
-        # *******************
-        matriz_correlaciones = np.zeros((num_filas,15))  # 1 IMU
-        # matriz_correlaciones = np.zeros((num_filas,66))  # 2 IMUs
-        for i in range(num_filas):
-            # Calcular la matriz de correlación entre las filas
-            correlacion = np.corrcoef(data.X_train[i,:,:], rowvar=True)
-            # Extraer la parte superior de la matriz sin la diagonal principal
-            upper_triangle_values = correlacion[np.triu_indices_from(correlacion, k=1)]
-            # print(upper_triangle_values)
-            
-            matriz_correlaciones[i,:] = upper_triangle_values
-        #self.X_train = np.hstack((Matriz_de_cuantiles_train, matriz_resultados_armonicos, matriz_resultados_numero_picos, matriz_correlaciones))
-        #print(self.X_train)
-        
-        # **************************************
-        # 5.- Autocorrelación del acelerómetro *
-        # **************************************
-        matriz_resultados_autocorrelacion = np.zeros((num_filas, 1))
-        # matriz_resultados_autocorrelacion = np.zeros((num_filas, 2))
-        # Recorremos cada serie temporal y calculamos los picos
-        for i in range(num_filas):
-            serie = np.linalg.norm(data.X_train[i,0:3,:], axis=0)
-            # serie_desplazada = np.pad(serie[-25], (25,), mode='constant', constant_values=0)
-            serie_desplazada = np.empty_like(serie)
-            serie_desplazada[:25] = 0
-            serie_desplazada[25:] = serie[:-25]
+        # for i in range(num_filas):
+        #     serie = np.linalg.norm(data.X_train[i,0:3,:], axis=0)
+        #     # serie_desplazada = np.pad(serie[-25], (25,), mode='constant', constant_values=0)
+        #     serie_desplazada = np.empty_like(serie)
+        #     serie_desplazada[:25] = 0
+        #     serie_desplazada[25:] = serie[:-25]
              
-            autocorrelacion_acc_IMU1 = np.corrcoef(serie, serie_desplazada)
+        #     autocorrelacion_acc_IMU1 = np.corrcoef(serie, serie_desplazada)
 
-            serie = np.linalg.norm(data.X_train[i,6:9,:], axis=0)
-            serie_desplazada = np.empty_like(serie)
-            serie_desplazada[:25] = 0
-            serie_desplazada[25:] = serie[:-25]
-            # serie_desplazada = np.pad(serie[:,-25], (25,0), mode='constant', constant_values=0)
-            autocorrelacion_acc_IMU2 = np.corrcoef(serie, serie_desplazada)
+        #     serie = np.linalg.norm(data.X_train[i,6:9,:], axis=0)
+        #     serie_desplazada = np.empty_like(serie)
+        #     serie_desplazada[:25] = 0
+        #     serie_desplazada[25:] = serie[:-25]
+        #     # serie_desplazada = np.pad(serie[:,-25], (25,0), mode='constant', constant_values=0)
+        #     autocorrelacion_acc_IMU2 = np.corrcoef(serie, serie_desplazada)
             
-            # modulo_acc_IMU1 = np.linalg.norm(data.X_train[i,0:3,:], axis=0)
-            # modulo_acc_IMU2 = np.linalg.norm(data.X_train[i,6:9,:], axis=0)
-            # autocorrelacion_acc_IMU2 = np.corrcoef(modulo_acc_IMU2, nlags=25)
+        #     # modulo_acc_IMU1 = np.linalg.norm(data.X_train[i,0:3,:], axis=0)
+        #     # modulo_acc_IMU2 = np.linalg.norm(data.X_train[i,6:9,:], axis=0)
+        #     # autocorrelacion_acc_IMU2 = np.corrcoef(modulo_acc_IMU2, nlags=25)
             
-            matriz_resultados_autocorrelacion[i,0] = autocorrelacion_acc_IMU1[0,1]
-            # matriz_resultados_autocorrelacion[i,1] = autocorrelacion_acc_IMU2[0,1]
+        #     matriz_resultados_autocorrelacion[i,0] = autocorrelacion_acc_IMU1[0,1]
+        #     # matriz_resultados_autocorrelacion[i,1] = autocorrelacion_acc_IMU2[0,1]
         
-        # self.X_train = np.hstack((Matriz_de_cuantiles_train, matriz_resultados_armonicos, matriz_resultados_numero_picos, matriz_correlaciones, matriz_resultados_autocorrelacion))      
+        # # self.X_train = np.hstack((Matriz_de_cuantiles_train, matriz_resultados_armonicos, matriz_resultados_numero_picos, matriz_correlaciones, matriz_resultados_autocorrelacion))      
         
-        # **************************************************
-        # 6.- Componentes roll, pitch y yaw del movimiento *
-        # **************************************************
-        dt = 1/25      # Período de muestreo en [s]
-        rolls_promedio = np.zeros((num_filas, 1))
-        pitches_promedio = np.zeros((num_filas, 1))
-        yaws_promedio = np.zeros((num_filas, 1))
-        for i in range(num_filas):
-            rolls = []
-            pitches = []
-            yaws = []
-            # Extraemos las series temporales de longitud 250 muestras (acelerómetro y giroscopio)
-            serie_acc_x = data.X_train[i, 0, :]
-            serie_acc_y = data.X_train[i, 1, :]
-            serie_acc_z = data.X_train[i, 2, :]
-            serie_gyr_x = data.X_train[i, 3, :]
-            serie_gyr_y = data.X_train[i, 4, :]
-            serie_gyr_z = data.X_train[i, 5, :]
+        # # **************************************************
+        # # 6.- Componentes roll, pitch y yaw del movimiento *
+        # # **************************************************
+        # dt = 1/25      # Período de muestreo en [s]
+        # rolls_promedio = np.zeros((num_filas, 1))
+        # pitches_promedio = np.zeros((num_filas, 1))
+        # yaws_promedio = np.zeros((num_filas, 1))
+        # for i in range(num_filas):
+        #     rolls = []
+        #     pitches = []
+        #     yaws = []
+        #     # Extraemos las series temporales de longitud 250 muestras (acelerómetro y giroscopio)
+        #     serie_acc_x = data.X_train[i, 0, :]
+        #     serie_acc_y = data.X_train[i, 1, :]
+        #     serie_acc_z = data.X_train[i, 2, :]
+        #     serie_gyr_x = data.X_train[i, 3, :]
+        #     serie_gyr_y = data.X_train[i, 4, :]
+        #     serie_gyr_z = data.X_train[i, 5, :]
             
-            yaw_acumulado = 0
-            for j in range(len(serie_acc_x)):
-                acc_x = serie_acc_x[j]
-                acc_y = serie_acc_y[j]
-                acc_z = serie_acc_z[j]
-                gyr_x = serie_gyr_x[j]
-                gyr_y = serie_gyr_y[j]
-                gyr_z = serie_gyr_z[j]
+        #     yaw_acumulado = 0
+        #     for j in range(len(serie_acc_x)):
+        #         acc_x = serie_acc_x[j]
+        #         acc_y = serie_acc_y[j]
+        #         acc_z = serie_acc_z[j]
+        #         gyr_x = serie_gyr_x[j]
+        #         gyr_y = serie_gyr_y[j]
+        #         gyr_z = serie_gyr_z[j]
 
-                roll = math.atan2(acc_y, acc_z)                             # Roll: rotación alrededor del eje X
-                pitch = math.atan2(-acc_x, math.sqrt(acc_y**2 + acc_z**2))  # Pitch: rotación alrededor del eje Y
-                yaw = gyr_z * dt                                            # Integración simple para obtener el cambio de yaw
-                yaw_acumulado += yaw                                        # Efecto acumulativo de la acción integral
-                rolls.append(roll)
-                pitches.append(pitch)
-            yaws.append(yaw_acumulado)
-            yaw_acumulado = 0
+        #         roll = math.atan2(acc_y, acc_z)                             # Roll: rotación alrededor del eje X
+        #         pitch = math.atan2(-acc_x, math.sqrt(acc_y**2 + acc_z**2))  # Pitch: rotación alrededor del eje Y
+        #         yaw = gyr_z * dt                                            # Integración simple para obtener el cambio de yaw
+        #         yaw_acumulado += yaw                                        # Efecto acumulativo de la acción integral
+        #         rolls.append(roll)
+        #         pitches.append(pitch)
+        #     yaws.append(yaw_acumulado)
+        #     yaw_acumulado = 0
             
-            rolls_promedio[i] = np.mean(rolls)
-            pitches_promedio[i] = np.mean(pitches)
-            yaws_promedio[i] = np.mean(yaws)
+        #     rolls_promedio[i] = np.mean(rolls)
+        #     pitches_promedio[i] = np.mean(pitches)
+        #     yaws_promedio[i] = np.mean(yaws)
         
-        self.X_train = np.hstack((Matriz_de_cuantiles_train, matriz_resultados_armonicos, matriz_resultados_numero_picos, matriz_correlaciones, matriz_resultados_autocorrelacion, rolls_promedio, pitches_promedio, yaws_promedio))    
+        # self.X_train = np.hstack((Matriz_de_cuantiles_train, matriz_resultados_armonicos, matriz_resultados_numero_picos, matriz_correlaciones, matriz_resultados_autocorrelacion, rolls_promedio, pitches_promedio, yaws_promedio))    
         
-        # Obtención de características de X_test.
-        # -----------------------------------------
-        # ***************
-        # 1.- Cuantiles *
-        # ***************
-        # [Mín, Máx, Mediana, Percentil 25,Percentil 75] para Acc_X, Acc_Y, Acc_Z, Gyr_X, Gyr_Y, Gyr_Z, Acc, Gyr.
-        minimos_test = np.quantile(data.X_test, 0, axis=2, keepdims=True)
-        maximos_test = np.quantile(data.X_test, 1, axis=2, keepdims=True)
-        medianas_test = np.quantile(data.X_test, 0.5, axis=2, keepdims=True)
-        Percentil_25_test = np.quantile(data.X_test, 0.25, axis=2, keepdims=True)
-        Percentil_75_test = np.quantile(data.X_test, 0.75, axis=2, keepdims=True)
-        Matriz_de_cuantiles_test = np.hstack((minimos_test, maximos_test, medianas_test, Percentil_25_test, Percentil_75_test))
-        Matriz_de_cuantiles_test = np.squeeze(Matriz_de_cuantiles_test, axis=2)
+        # # Obtención de características de X_test.
+        # # -----------------------------------------
+        # # ***************
+        # # 1.- Cuantiles *
+        # # ***************
+        # # [Mín, Máx, Mediana, Percentil 25,Percentil 75] para Acc_X, Acc_Y, Acc_Z, Gyr_X, Gyr_Y, Gyr_Z, Acc, Gyr.
+        # minimos_test = np.quantile(data.X_test, 0, axis=2, keepdims=True)
+        # maximos_test = np.quantile(data.X_test, 1, axis=2, keepdims=True)
+        # medianas_test = np.quantile(data.X_test, 0.5, axis=2, keepdims=True)
+        # Percentil_25_test = np.quantile(data.X_test, 0.25, axis=2, keepdims=True)
+        # Percentil_75_test = np.quantile(data.X_test, 0.75, axis=2, keepdims=True)
+        # Matriz_de_cuantiles_test = np.hstack((minimos_test, maximos_test, medianas_test, Percentil_25_test, Percentil_75_test))
+        # Matriz_de_cuantiles_test = np.squeeze(Matriz_de_cuantiles_test, axis=2)
         
-        # *********************************
-        # 2.- Características espectrales *
-        # *********************************
-        # Inicializamos las matrices de resultados
-        num_filas = (data.X_test).shape[0]  # m ejemplos
-        num_columnas = (data.X_test).shape[1]  # 12
+        # # *********************************
+        # # 2.- Características espectrales *
+        # # *********************************
+        # # Inicializamos las matrices de resultados
+        # num_filas = (data.X_test).shape[0]  # m ejemplos
+        # num_columnas = (data.X_test).shape[1]  # 12
         
-        matriz_resultados_armonicos = np.zeros((num_filas,30))    # 1 IMU
-        # matriz_resultados_armonicos = np.zeros((num_filas,60))    # 2 IMUs
-        # Recorremos cada serie temporal y calculamos las características
-        for i in range(num_filas):
-            armonicos_totales = np.zeros((6,5))      # 1 IMU  
-            # armonicos_totales = np.zeros((12,5))   # 2 IMUs
-            for j in range(num_columnas):
-                # Extraemos la serie temporal de longitud 250
-                serie = data.X_train[i, j, :]
-                # Calculamos las características espectrales
-                resultado_armonicos,_ = funciones_caracteristicas_RandomForest.obtener_caracteristicas_espectrales(serie,25)
-                armonicos_totales[j, :] = resultado_armonicos
-            armonicos_totales_2 = np.reshape(armonicos_totales,(1,-1))
-            matriz_resultados_armonicos[i,:] = armonicos_totales_2
+        # matriz_resultados_armonicos = np.zeros((num_filas,30))    # 1 IMU
+        # # matriz_resultados_armonicos = np.zeros((num_filas,60))    # 2 IMUs
+        # # Recorremos cada serie temporal y calculamos las características
+        # for i in range(num_filas):
+        #     armonicos_totales = np.zeros((6,5))      # 1 IMU  
+        #     # armonicos_totales = np.zeros((12,5))   # 2 IMUs
+        #     for j in range(num_columnas):
+        #         # Extraemos la serie temporal de longitud 250
+        #         serie = data.X_train[i, j, :]
+        #         # Calculamos las características espectrales
+        #         resultado_armonicos,_ = _spectral_features_calculator.obtener_caracteristicas_espectrales(serie,25)
+        #         armonicos_totales[j, :] = resultado_armonicos
+        #     armonicos_totales_2 = np.reshape(armonicos_totales,(1,-1))
+        #     matriz_resultados_armonicos[i,:] = armonicos_totales_2
         
-        # *****************************************
-        # 3.- Número de picos y prominencia media *
-        # *****************************************
-        matriz_resultados_numero_picos = np.zeros((num_filas,12))   # 1 IMU
-        # matriz_resultados_numero_picos = np.zeros((num_filas,24))   # 2 IMUs
-        # Recorremos cada serie temporal y calculamos los picos
-        for i in range(num_filas):  
-            picos_totales = np.zeros(6) # 1 IMU
-            prominencias_totales = np.zeros(6) # 1 IMU
-            # picos_totales = np.zeros(12) # 2 IMUs
-            # prominencias_totales = np.zeros(12) # 2 IMUs
-            for j in range(num_columnas):
-                # Extraemos la serie temporal de longitud 250
-                serie = data.X_train[i, j, :]
-                # Calculamos las características espectrales
-                indices_picos, propiedades_picos = find_peaks(serie, prominence=True)
-                numero_picos=len(indices_picos)
-                if numero_picos > 0:
-                    # Si se detectaron picos, podemos proceder con el cálculo
-                    prominencias_picos = propiedades_picos['prominences']
-                    # Por ejemplo, calcular la mediana de la prominencia de los picos
-                    prominencia_media = np.median(prominencias_picos)
-                else:
-                    # prominencia_media = np.NaN
-                    prominencia_media = 0
+        # # *****************************************
+        # # 3.- Número de picos y prominencia media *
+        # # *****************************************
+        # matriz_resultados_numero_picos = np.zeros((num_filas,12))   # 1 IMU
+        # # matriz_resultados_numero_picos = np.zeros((num_filas,24))   # 2 IMUs
+        # # Recorremos cada serie temporal y calculamos los picos
+        # for i in range(num_filas):  
+        #     picos_totales = np.zeros(6) # 1 IMU
+        #     prominencias_totales = np.zeros(6) # 1 IMU
+        #     # picos_totales = np.zeros(12) # 2 IMUs
+        #     # prominencias_totales = np.zeros(12) # 2 IMUs
+        #     for j in range(num_columnas):
+        #         # Extraemos la serie temporal de longitud 250
+        #         serie = data.X_train[i, j, :]
+        #         # Calculamos las características espectrales
+        #         indices_picos, propiedades_picos = find_peaks(serie, prominence=True)
+        #         numero_picos=len(indices_picos)
+        #         if numero_picos > 0:
+        #             # Si se detectaron picos, podemos proceder con el cálculo
+        #             prominencias_picos = propiedades_picos['prominences']
+        #             # Por ejemplo, calcular la mediana de la prominencia de los picos
+        #             prominencia_media = np.median(prominencias_picos)
+        #         else:
+        #             # prominencia_media = np.NaN
+        #             prominencia_media = 0
                 
-                picos_totales[j] = numero_picos
-                prominencias_totales[j] = prominencia_media
+        #         picos_totales[j] = numero_picos
+        #         prominencias_totales[j] = prominencia_media
                 
-            picos_totales_2 = np.reshape(picos_totales,(1,-1))
-            prominencias_totales_2 = np.reshape(prominencias_totales,(1,-1))
-            matriz_resultados_numero_picos[i,:] = np.hstack((picos_totales_2, prominencias_totales_2))
+        #     picos_totales_2 = np.reshape(picos_totales,(1,-1))
+        #     prominencias_totales_2 = np.reshape(prominencias_totales,(1,-1))
+        #     matriz_resultados_numero_picos[i,:] = np.hstack((picos_totales_2, prominencias_totales_2))
         
-        # *******************
-        # 4.- Correlaciones *
-        # *******************
-        matriz_correlaciones = np.zeros((num_filas,15))  # 1 IMU
-        # matriz_correlaciones = np.zeros((num_filas,66))  # 2 IMUs
-        for i in range(num_filas):
-            # Calcular la matriz de correlación entre las filas
-            correlacion = np.corrcoef(data.X_train[i,:,:], rowvar=True)
-            # Extraer la parte superior de la matriz sin la diagonal principal
-            upper_triangle_values = correlacion[np.triu_indices_from(correlacion, k=1)]  
-            matriz_correlaciones[i,:] = upper_triangle_values
+        # # *******************
+        # # 4.- Correlaciones *
+        # # *******************
+        # matriz_correlaciones = np.zeros((num_filas,15))  # 1 IMU
+        # # matriz_correlaciones = np.zeros((num_filas,66))  # 2 IMUs
+        # for i in range(num_filas):
+        #     # Calcular la matriz de correlación entre las filas
+        #     correlacion = np.corrcoef(data.X_train[i,:,:], rowvar=True)
+        #     # Extraer la parte superior de la matriz sin la diagonal principal
+        #     upper_triangle_values = correlacion[np.triu_indices_from(correlacion, k=1)]  
+        #     matriz_correlaciones[i,:] = upper_triangle_values
         
-        # **************************************
-        # 5.- Autocorrelación del acelerómetro *
-        # **************************************
-        matriz_resultados_autocorrelacion = np.zeros((num_filas, 1))
-        # matriz_resultados_autocorrelacion = np.zeros((num_filas, 2))
-        # Recorremos cada serie temporal y calculamos los picos
-        for i in range(num_filas):
-            serie = np.linalg.norm(data.X_train[i,0:3,:], axis=0)
-            # serie_desplazada = np.pad(serie[-25], (25,), mode='constant', constant_values=0)
-            serie_desplazada = np.empty_like(serie)
-            serie_desplazada[:25] = 0
-            serie_desplazada[25:] = serie[:-25]
+        # # **************************************
+        # # 5.- Autocorrelación del acelerómetro *
+        # # **************************************
+        # matriz_resultados_autocorrelacion = np.zeros((num_filas, 1))
+        # # matriz_resultados_autocorrelacion = np.zeros((num_filas, 2))
+        # # Recorremos cada serie temporal y calculamos los picos
+        # for i in range(num_filas):
+        #     serie = np.linalg.norm(data.X_train[i,0:3,:], axis=0)
+        #     # serie_desplazada = np.pad(serie[-25], (25,), mode='constant', constant_values=0)
+        #     serie_desplazada = np.empty_like(serie)
+        #     serie_desplazada[:25] = 0
+        #     serie_desplazada[25:] = serie[:-25]
             
-            autocorrelacion_acc_IMU1 = np.corrcoef(serie, serie_desplazada)
+        #     autocorrelacion_acc_IMU1 = np.corrcoef(serie, serie_desplazada)
 
-            serie = np.linalg.norm(data.X_train[i,6:9,:], axis=0)
-            serie_desplazada = np.empty_like(serie)
-            serie_desplazada[:25] = 0
-            serie_desplazada[25:] = serie[:-25]
-            # serie_desplazada = np.pad(serie[:,-25], (25,0), mode='constant', constant_values=0)
-            autocorrelacion_acc_IMU2 = np.corrcoef(serie, serie_desplazada)
+        #     serie = np.linalg.norm(data.X_train[i,6:9,:], axis=0)
+        #     serie_desplazada = np.empty_like(serie)
+        #     serie_desplazada[:25] = 0
+        #     serie_desplazada[25:] = serie[:-25]
+        #     # serie_desplazada = np.pad(serie[:,-25], (25,0), mode='constant', constant_values=0)
+        #     autocorrelacion_acc_IMU2 = np.corrcoef(serie, serie_desplazada)
             
-            matriz_resultados_autocorrelacion[i,0] = autocorrelacion_acc_IMU1[0,1]
-            # matriz_resultados_autocorrelacion[i,1] = autocorrelacion_acc_IMU2[0,1]
+        #     matriz_resultados_autocorrelacion[i,0] = autocorrelacion_acc_IMU1[0,1]
+        #     # matriz_resultados_autocorrelacion[i,1] = autocorrelacion_acc_IMU2[0,1]
         
         # self.X_test = np.hstack((Matriz_de_cuantiles_test, matriz_resultados_armonicos, matriz_resultados_numero_picos, matriz_correlaciones, matriz_resultados_autocorrelacion))
                 
-        # **************************************************
-        # 6.- Componentes roll, pitch y yaw del movimiento *
-        # **************************************************
-        dt = 1/25      # Período de muestreo en [s]
-        rolls_promedio = np.zeros((num_filas, 1))
-        pitches_promedio = np.zeros((num_filas, 1))
-        yaws_promedio = np.zeros((num_filas, 1))
-        for i in range(num_filas):
-            rolls = []
-            pitches = []
-            yaws = []
-            # Extraemos las series temporales de longitud 250 muestras (acelerómetro y giroscopio)
-            serie_acc_x = data.X_test[i, 0, :]
-            serie_acc_y = data.X_test[i, 1, :]
-            serie_acc_z = data.X_test[i, 2, :]
-            serie_gyr_x = data.X_test[i, 3, :]
-            serie_gyr_y = data.X_test[i, 4, :]
-            serie_gyr_z = data.X_test[i, 5, :]
+        # # **************************************************
+        # # 6.- Componentes roll, pitch y yaw del movimiento *
+        # # **************************************************
+        # dt = 1/25      # Período de muestreo en [s]
+        # rolls_promedio = np.zeros((num_filas, 1))
+        # pitches_promedio = np.zeros((num_filas, 1))
+        # yaws_promedio = np.zeros((num_filas, 1))
+        # for i in range(num_filas):
+        #     rolls = []
+        #     pitches = []
+        #     yaws = []
+        #     # Extraemos las series temporales de longitud 250 muestras (acelerómetro y giroscopio)
+        #     serie_acc_x = data.X_test[i, 0, :]
+        #     serie_acc_y = data.X_test[i, 1, :]
+        #     serie_acc_z = data.X_test[i, 2, :]
+        #     serie_gyr_x = data.X_test[i, 3, :]
+        #     serie_gyr_y = data.X_test[i, 4, :]
+        #     serie_gyr_z = data.X_test[i, 5, :]
             
-            yaw_acumulado = 0
-            for j in range(len(serie_acc_x)):
-                acc_x = serie_acc_x[j]
-                acc_y = serie_acc_y[j]
-                acc_z = serie_acc_z[j]
-                gyr_x = serie_gyr_x[j]
-                gyr_y = serie_gyr_y[j]
-                gyr_z = serie_gyr_z[j]
+        #     yaw_acumulado = 0
+        #     for j in range(len(serie_acc_x)):
+        #         acc_x = serie_acc_x[j]
+        #         acc_y = serie_acc_y[j]
+        #         acc_z = serie_acc_z[j]
+        #         gyr_x = serie_gyr_x[j]
+        #         gyr_y = serie_gyr_y[j]
+        #         gyr_z = serie_gyr_z[j]
 
-                roll = math.atan2(acc_y, acc_z)                             # Roll: rotación alrededor del eje X
-                pitch = math.atan2(-acc_x, math.sqrt(acc_y**2 + acc_z**2))  # Pitch: rotación alrededor del eje Y
-                yaw = gyr_z * dt                                            # Integración simple para obtener el cambio de yaw
-                yaw_acumulado += yaw                                        # Efecto acumulativo de la acción integral
-                rolls.append(roll)
-                pitches.append(pitch)
-            yaws.append(yaw_acumulado)
-            yaw_acumulado = 0
+        #         roll = math.atan2(acc_y, acc_z)                             # Roll: rotación alrededor del eje X
+        #         pitch = math.atan2(-acc_x, math.sqrt(acc_y**2 + acc_z**2))  # Pitch: rotación alrededor del eje Y
+        #         yaw = gyr_z * dt                                            # Integración simple para obtener el cambio de yaw
+        #         yaw_acumulado += yaw                                        # Efecto acumulativo de la acción integral
+        #         rolls.append(roll)
+        #         pitches.append(pitch)
+        #     yaws.append(yaw_acumulado)
+        #     yaw_acumulado = 0
             
-            rolls_promedio[i] = np.mean(rolls)
-            pitches_promedio[i] = np.mean(pitches)
-            yaws_promedio[i] = np.mean(yaws)
+        #     rolls_promedio[i] = np.mean(rolls)
+        #     pitches_promedio[i] = np.mean(pitches)
+        #     yaws_promedio[i] = np.mean(yaws)
         
-        self.X_test = np.hstack((Matriz_de_cuantiles_test, matriz_resultados_armonicos, matriz_resultados_numero_picos, matriz_correlaciones, matriz_resultados_autocorrelacion, rolls_promedio, pitches_promedio, yaws_promedio))
+        # self.X_test = np.hstack((Matriz_de_cuantiles_test, matriz_resultados_armonicos, matriz_resultados_numero_picos, matriz_correlaciones, matriz_resultados_autocorrelacion, rolls_promedio, pitches_promedio, yaws_promedio))
         
         self.y_train = data.y_train
         self.y_test  = data.y_test
