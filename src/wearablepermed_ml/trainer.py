@@ -80,8 +80,15 @@ def parse_args(args):
         "--dataset-folder",
         dest="dataset_folder",
         required=True,
-        help="Choose the dataset folder."
-    )    
+        help="Choose the dataset root folder."
+    )
+    parser.add_argument(
+        "-participants-file",
+        "--participants-file",
+        type=argparse.FileType("r"),
+        required=True,
+        help="Choose the dataset participant text file"
+    )        
     parser.add_argument(
         '-training-percent',
         '--training-percent',
@@ -133,6 +140,10 @@ def main(args):
     setup_logging(args.loglevel)
 
     _logger.debug("Starting training ...")
+
+    participants = []
+    for line in args.participants_file:
+        participants = participants + line.strip().split(',')
 
     for ml_model in args.ml_models[0]:        
         modelID = 'modelID_' + ml_model.value + '_data_' + args.ml_sensor

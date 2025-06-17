@@ -20,7 +20,7 @@ __pycache__/*
 .pydevproject
 .settings
 .idea
-.vscode
+#.vscode
 tags
 
 # Package files
@@ -52,3 +52,5 @@ MANIFEST
 .venv*/
 .conda*/
 .python-version
+
+#participants.json
