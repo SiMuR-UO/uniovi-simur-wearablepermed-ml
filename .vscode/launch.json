@@ -10,11 +10,11 @@
           "request": "launch",
           "program": "${file}",
           "args": [
-            "--ml-models","RandomForest,ESANN",
-            "--ml-sensor", "tot",
-            "--dataset-folder", "/home/miguel/temp/wearablepermed",
+            "--ml-models","ESANN",
+            "--ml-sensors", "all",
+            "--dataset-folder", "D:\\GIT_16_06_2025\\uniovi-simur-wearablepermed-ml\\datos",
             "--participants-file", "participants.txt",
-            "--training-percent", "60"
+            "--training-percent", "70"
           ],
           "console": "integratedTerminal"
         }

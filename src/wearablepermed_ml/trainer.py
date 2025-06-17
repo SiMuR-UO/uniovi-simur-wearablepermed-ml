@@ -3,6 +3,8 @@ import sys
 import argparse
 import logging
 from enum import Enum
+
+import numpy as np
 from Data import DataReader
 from model_generator import modelGenerator
 from address import *
@@ -18,6 +20,7 @@ class ML_Model(Enum):
     ESANN = 'ESANN'
     CAPTURE24 = 'CAPTURE24'
     RANDOM_FOREST = 'RandomForest'
+    XGBOOST = 'XGBoost'
 
 class ML_Sensor(Enum):
     THIGH = 'thigh'
@@ -126,6 +129,103 @@ def setup_logging(loglevel):
         level=loglevel, stream=sys.stdout, format=logformat, datefmt="%Y-%m-%d %H:%M:%S"
     )
 
+def convolution_model_selected(models):
+    for model in models:
+        if model.value in [ML_Model.CAPTURE24, ML_Model.ESANN]:
+            return True
+        
+    return False
+
+def feature_model_selected(models):
+    for model in models:
+        if model.value in [ML_Model.RANDOM_FOREST, ML_Model.XGBOOST]:
+            return True
+        
+    return False
+
+def combine_participant_dataset(dataset_folder, participants, models):
+    for participant in participants:
+        participant_folder = os.path.join(dataset_folder, participant)
+        participant_files = [f for f in os.listdir(participant_folder) if os.path.isfile(os.path.join(participant_folder, f)) and ".npz" in f]
+    
+        participant_dataset = []
+        participant_label_dataset = []
+        
+        participant_feature_dataset = []
+        participant_label_feature_dataset = []
+        
+        for participant_file in participant_files:
+            if "all" not in participant_file and "features" not in participant_file and convolution_model_selected(models):
+                participant_sensor_dataset = np.load(participant_file)
+                
+                participant_dataset.append(participant_sensor_dataset['concatenated_data'], axis=0)
+                participant_label_dataset.append(participant_sensor_dataset['all_labels'], axis=0)
+                
+                participant_sensor_file = os.path.join(participant_folder, 'data_' + participant + "_all.npz")
+                np.savez(participant_sensor_file, participant_dataset, participant_label_dataset)
+                
+            if "all" not in participant_file and "features" in participant_file and feature_model_selected(models):
+                participant_sensor_feature_dataset = np.load(participant_file)
+                
+                participant_feature_dataset.append(participant_sensor_feature_dataset['concatenated_data'], axis=0)
+                participant_label_feature_dataset.append(participant_sensor_feature_dataset['all_labels'], axis=0)
+                
+                participant_sensor_feature_file = os.path.join(participant_folder, 'data_' + participant + "_feature_all.npz")
+                np.savez(participant_sensor_feature_file, participant_feature_dataset, participant_label_feature_dataset)                
+
+def combine_datasets(dataset_folder, participants, models, ml_sensor):
+    dataset = []
+    dataset_feature = []
+    
+    for participant in participants:
+        participant_folder = os.path.join(dataset_folder, participant)
+        participant_files = [f for f in os.listdir(participant_folder) if os.path.isfile(os.path.join(participant_folder, f)) and ".npz" in f]        
+
+        for participant_file in participant_files:
+            if ml_sensor == ML_Sensor.WRIST.value:
+                if (convolution_model_selected(models) and "_M.npz" in participant_file):
+                    participant_sensor_dataset = np.load(participant_file)
+                    dataset.append(participant_sensor_dataset, axis=0)
+                
+                if (feature_model_selected(models) and "_M_features.npz" in participant_file):    
+                    participant_sensor_feature_dataset = np.load(participant_file)
+                    dataset_feature.append(participant_sensor_feature_dataset, axis=0)
+            elif ml_sensor == ML_Sensor.THIGH.value:
+                if (convolution_model_selected(models) and "_PI.npz" in participant_file):
+                    participant_sensor_dataset = np.load(participant_file)
+                    dataset.append(participant_sensor_dataset, axis=0)
+                
+                if (feature_model_selected(models) and "_PI_features.npz" in participant_file):    
+                    participant_sensor_feature_dataset = np.load(participant_file)
+                    dataset_feature.append(participant_sensor_feature_dataset, axis=0)                
+            else:
+                if (convolution_model_selected(models) and "_all.npz" in participant_file):
+                    participant_sensor_dataset = np.load(participant_file)
+                    dataset.append(participant_sensor_dataset, axis=0)
+                
+                if (feature_model_selected(models) and "_all_features.npz" in participant_file):    
+                    participant_sensor_feature_dataset = np.load(participant_file)
+                    dataset_feature.append(participant_sensor_feature_dataset, axis=0)
+    
+    if dataset_feature.size == 0:
+        if ml_sensor == ML_Sensor.WRIST.value:
+            dataset_file = os.path.join(dataset_folder, "dataset_M.npz")                
+        elif ml_sensor == ML_Sensor.THIGH.value:
+            dataset_file = os.path.join(dataset_folder, "dataset_PI.npz")
+        else:
+            dataset_file = os.path.join(dataset_folder, "dataset_all.npz")
+            
+        np.savez(dataset_file, dataset)      
+    else:
+        if ml_sensor == ML_Sensor.WRIST.value:
+            dataset_file = os.path.join(dataset_folder, "dataset_M_feature.npz")                
+        elif ml_sensor == ML_Sensor.THIGH.value:
+            dataset_file = os.path.join(dataset_folder, "dataset_PI_feature.npz")
+        else:
+            dataset_file = os.path.join(dataset_folder, "dataset_all_feature.npz")
+            
+        np.savez(dataset_file, dataset_feature)                               
+
 def main(args):
     """Wrapper allowing :func:`fib` to be called with string arguments in a CLI fashion
 
@@ -145,6 +245,12 @@ def main(args):
     for line in args.participants_file:
         participants = participants + line.strip().split(',')
 
+    # Agregacion de acelerometria para caso all
+    if args.ml_sensor == "all":
+        combine_participant_dataset(args.dataset_folder, participants, args.ml_models[0])
+    
+    combine_datasets(args.dataset_folder, participants, args.ml_models[0], args.ml_sensor.value)
+     
     for ml_model in args.ml_models[0]:        
         modelID = 'modelID_' + ml_model.value + '_data_' + args.ml_sensor
 
