@@ -10,8 +10,8 @@
           "request": "launch",
           "program": "${file}",
           "args": [
-            "--ml-models","ESANN",
-            "--ml-sensors", "all",
+            "--ml-models","ESANN,RandomForest",
+            "--ml-sensor", "all",
             "--dataset-folder", "D:\\GIT_16_06_2025\\uniovi-simur-wearablepermed-ml\\datos",
             "--participants-file", "participants.txt",
             "--training-percent", "70"
