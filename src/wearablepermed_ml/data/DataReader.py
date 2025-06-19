@@ -16,6 +16,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import joblib
 
+WINDOW_CONCATENATED_DATA = "arr_0"
+WINDOW_ALL_LABELS = "arr_1"
 
 # Jittering
 def jitter(X, sigma=0.5):
@@ -79,29 +81,13 @@ def time_warp(X, sigma=0.2):
 
     return X_new
 
-
-ruta_1 = '/home/simur/directorio_SiMuR_MachineLearning/WPM_24_02_2025/Data/stack_de_datos_etiquetados_y_enventanados_WPM/data_tot_PMP.npz'
-ruta_2 = '/home/simur/directorio_SiMuR_MachineLearning/WPM_24_02_2025/Data/stack_de_datos_etiquetados_y_enventanados_WPM/data_thigh_PMP.npz'
-ruta_3 = '/home/simur/directorio_SiMuR_MachineLearning/WPM_24_02_2025/Data/stack_de_datos_etiquetados_y_enventanados_WPM/data_wrist_PMP.npz'
-
-
 class DataReader(object):
-    def __init__(self, p_train, dataset):
-        
+    def __init__(self, p_train, file_path):        
         self.p_train = p_train
         
-        # ----------------------------------------------------------------------------- #
-        #                 *** IMPORTACIÓN DE LOS CONJUNTOS DE DATOS ***
-        if dataset == 'data_tot':
-            file_path = ruta_1
-        elif dataset == 'data_thigh':
-            file_path = ruta_2
-        elif dataset == 'data_wrist':
-            file_path = ruta_3
-        
         stack_de_datos_y_etiquetas_PMP_tot = np.load(file_path)
-        datos_input = stack_de_datos_y_etiquetas_PMP_tot['concatenated_data']
-        etiquetas_output = stack_de_datos_y_etiquetas_PMP_tot['labels']
+        datos_input = stack_de_datos_y_etiquetas_PMP_tot[WINDOW_CONCATENATED_DATA]
+        etiquetas_output = stack_de_datos_y_etiquetas_PMP_tot[WINDOW_ALL_LABELS]
 
         # X data
         X = datos_input

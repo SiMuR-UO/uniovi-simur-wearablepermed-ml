@@ -1,7 +1,7 @@
-from Models import *
-from address import *
+from models import *
+from basic_functions.address import *
 import pandas as pd
-from Data import DataReader
+from data import DataReader
 import ast
 
 # Model factory pattern

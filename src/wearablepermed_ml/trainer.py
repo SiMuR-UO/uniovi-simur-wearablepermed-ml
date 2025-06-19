@@ -5,9 +5,9 @@ import logging
 from enum import Enum
 
 import numpy as np
-from Data import DataReader
-from model_generator import modelGenerator
-from address import *
+from data import DataReader
+from models.model_generator import modelGenerator
+from basic_functions.address import *
 import keras
 
 __author__ = "Miguel Salinas <uo34525@uniovi.es>, Alejandro <uo265351@uniovi.es>"
@@ -18,6 +18,8 @@ _logger = logging.getLogger(__name__)
 
 WINDOW_CONCATENATED_DATA = "arr_0"
 WINDOW_ALL_LABELS = "arr_1"
+CONVOLUTIONAL_DATASET_FILE = "data_all.npz"
+FEATURE_DATASET_FILE = "data_feature_all.npz"
 
 class ML_Model(Enum):
     ESANN = 'ESANN'
@@ -26,9 +28,9 @@ class ML_Model(Enum):
     XGBOOST = 'XGBoost'
 
 class ML_Sensor(Enum):
-    THIGH = 'thigh'
-    WRIST = 'wrist'
-    TOTAL = 'all'
+    PI = 'thigh'
+    M = 'wrist'
+    C = 'hip'
 
 def parse_ml_model(value):
     try:
@@ -51,7 +53,7 @@ def parse_ml_model(value):
     except ValueError:
         valid = ', '.join(ml_model.value for ml_model in ML_Model)
         raise argparse.ArgumentTypeError(f"Invalid ML Model '{value}'. Choose from: {valid}")
-    
+
 def parse_args(args):
     """Parse command line parameters
 
@@ -73,28 +75,12 @@ def parse_args(args):
         help=f"Available ML models: {[c.value for c in ML_Model]}."
     )
     parser.add_argument(
-        "-ml-sensor",
-        "--ml-sensor",
-        type=str,
-        choices=[ml_sensor.value for ml_sensor in ML_Sensor],
-        dest="ml_sensor",
-        required=True,
-        help=f"Choose a ML sensor: {[c.value for c in ML_Sensor]}."
-    )
-    parser.add_argument(
         "-dataset-folder",
         "--dataset-folder",
         dest="dataset_folder",
         required=True,
         help="Choose the dataset root folder."
-    )
-    parser.add_argument(
-        "-participants-file",
-        "--participants-file",
-        type=argparse.FileType("r"),
-        required=True,
-        help="Choose the dataset participant text file"
-    )        
+    )       
     parser.add_argument(
         '-training-percent',
         '--training-percent',
@@ -146,99 +132,6 @@ def feature_model_selected(models):
         
     return False
 
-def combine_participant_dataset(dataset_folder, participants, models):
-    for participant in participants:
-        participant_folder = os.path.join(dataset_folder, participant)
-        participant_files = [f for f in os.listdir(participant_folder) if os.path.isfile(os.path.join(participant_folder, f)) and ".npz" in f and "all" not in f]
-    
-        participant_dataset = []
-        participant_label_dataset = []
-        
-        participant_feature_dataset = []
-        participant_label_feature_dataset = []
-        
-        for participant_file in participant_files:
-            if "features" not in participant_file and convolution_model_selected(models):
-                participant_sensor_file = os.path.join(participant_folder, participant_file)
-                participant_sensor_dataset = np.load(participant_sensor_file)
-                
-                participant_dataset.append(participant_sensor_dataset[WINDOW_CONCATENATED_DATA])
-                participant_label_dataset.append(participant_sensor_dataset[WINDOW_ALL_LABELS])
-                
-            if "features" in participant_file and feature_model_selected(models):
-                participant_sensor_feature_file = os.path.join(participant_folder, participant_file)
-                participant_sensor_feature_dataset = np.load(participant_sensor_feature_file)
-                
-                participant_feature_dataset.append(participant_sensor_feature_dataset[WINDOW_CONCATENATED_DATA])
-                participant_label_feature_dataset.append(participant_sensor_feature_dataset[WINDOW_ALL_LABELS])
-
-        if len(participant_dataset) > 0:
-            participant_dataset = np.concatenate(participant_dataset, axis=0)
-            participant_label_dataset = np.concatenate(participant_label_dataset, axis=0)
-        
-            participant_sensor_all_file = os.path.join(participant_folder, 'data_' + participant + "_all.npz")
-            np.savez(participant_sensor_all_file, participant_dataset, participant_label_dataset)
-        
-        if len(participant_feature_dataset) > 0:
-            participant_feature_dataset = np.concatenate(participant_feature_dataset, axis=0)
-            participant_label_feature_dataset = np.concatenate(participant_label_feature_dataset, axis=0)
-                    
-            participant_sensor_feature_all_file = os.path.join(participant_folder, 'data_' + participant + "_feature_all.npz")
-            np.savez(participant_sensor_feature_all_file, participant_feature_dataset, participant_label_feature_dataset) 
-                
-def combine_datasets(dataset_folder, participants, models, ml_sensor):
-    dataset = []
-    dataset_feature = []
-    
-    for participant in participants:
-        participant_folder = os.path.join(dataset_folder, participant)
-        participant_files = [f for f in os.listdir(participant_folder) if os.path.isfile(os.path.join(participant_folder, f)) and ".npz" in f]        
-
-        for participant_file in participant_files:
-            if ml_sensor == ML_Sensor.WRIST.value:
-                if (convolution_model_selected(models) and "_M.npz" in participant_file):
-                    participant_sensor_dataset = np.load(participant_file)
-                    dataset.append(participant_sensor_dataset, axis=0)
-                
-                if (feature_model_selected(models) and "_M_features.npz" in participant_file):    
-                    participant_sensor_feature_dataset = np.load(participant_file)
-                    dataset_feature.append(participant_sensor_feature_dataset, axis=0)
-            elif ml_sensor == ML_Sensor.THIGH.value:
-                if (convolution_model_selected(models) and "_PI.npz" in participant_file):
-                    participant_sensor_dataset = np.load(participant_file)
-                    dataset.append(participant_sensor_dataset, axis=0)
-                
-                if (feature_model_selected(models) and "_PI_features.npz" in participant_file):    
-                    participant_sensor_feature_dataset = np.load(participant_file)
-                    dataset_feature.append(participant_sensor_feature_dataset, axis=0)                
-            else:
-                if (convolution_model_selected(models) and "_all.npz" in participant_file):
-                    participant_sensor_dataset = np.load(participant_file)
-                    dataset.append(participant_sensor_dataset, axis=0)
-                
-                if (feature_model_selected(models) and "_all_features.npz" in participant_file):    
-                    participant_sensor_feature_dataset = np.load(participant_file)
-                    dataset_feature.append(participant_sensor_feature_dataset, axis=0)
-    
-    if dataset_feature.size == 0:
-        if ml_sensor == ML_Sensor.WRIST.value:
-            dataset_file = os.path.join(dataset_folder, "dataset_M.npz")                
-        elif ml_sensor == ML_Sensor.THIGH.value:
-            dataset_file = os.path.join(dataset_folder, "dataset_PI.npz")
-        else:
-            dataset_file = os.path.join(dataset_folder, "dataset_all.npz")
-            
-        np.savez(dataset_file, dataset)      
-    else:
-        if ml_sensor == ML_Sensor.WRIST.value:
-            dataset_file = os.path.join(dataset_folder, "dataset_M_feature.npz")                
-        elif ml_sensor == ML_Sensor.THIGH.value:
-            dataset_file = os.path.join(dataset_folder, "dataset_PI_feature.npz")
-        else:
-            dataset_file = os.path.join(dataset_folder, "dataset_all_feature.npz")
-            
-        np.savez(dataset_file, dataset_feature)                               
-
 def main(args):
     """Wrapper allowing :func:`fib` to be called with string arguments in a CLI fashion
 
@@ -252,24 +145,16 @@ def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
 
-    _logger.debug("Starting training ...")
+    _logger.info("Trainer starts here")
 
-    participants = []
-    for line in args.participants_file:
-        participants = participants + line.strip().split(',')
-
-    # Agregacion de acelerometria para caso all
-    if args.ml_sensor == "all":
-        combine_participant_dataset(args.dataset_folder, participants, args.ml_models[0])
-    
-    combine_datasets(args.dataset_folder, participants, args.ml_models[0], args.ml_sensor.value)
-     
     for ml_model in args.ml_models[0]:        
-        modelID = 'modelID_' + ml_model.value + '_data_' + args.ml_sensor
+        modelID = 'modelID_' + ml_model.value
 
-        if ml_model.value == ML_Model.ESANN.value and args.ml_sensor == ML_Sensor.TOTAL.value:
+        if ml_model.value == ML_Model.ESANN.value:
+            dataset_file = os.path.join(args.dataset_folder, CONVOLUTIONAL_DATASET_FILE)
+
             # IMUs muslo + muñeca
-            data_tot = DataReader(p_train = args.training_percent / 100, dataset='data_tot')
+            data_tot = DataReader(p_train = args.training_percent / 100, file_path=dataset_file)
             params_ESANN = {"N_capas": 2}
             model_ESANN_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_ESANN, debug=False)
             Ruta_model_ESANN_data_tot = get_model_path(modelID)
@@ -282,35 +167,11 @@ def main(args):
                 model_ESANN_data_tot.train()
                 model_ESANN_data_tot.store(modelID, args.dataset_folder)
                 
-        elif ml_model.value == ML_Model.ESANN.value and args.ml_sensor == ML_Sensor.THIGH.value:
-            # IMU muslo
-            data_thigh = DataReader(p_train = args.training_percent / 100, dataset='data_thigh')
-            params_ESANN = {"N_capas": 2}
-            model_ESANN_data_thigh = modelGenerator(modelID=modelID, data=data_thigh, params=params_ESANN, debug=False)
-            Ruta_model_ESANN_data_thigh = get_model_path(modelID)      
-            if os.path.isfile(Ruta_model_ESANN_data_thigh):
-                model_ESANN_data_thigh.load(modelID, args.dataset_folder)
-            else:
-                callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
-                model_ESANN_data_thigh.train()
-                model_ESANN_data_thigh.store(modelID, args.dataset_folder)
-                
-        elif ml_model.value == ML_Model.ESANN.value and args.ml_sensor == ML_Sensor.WRIST.value:
-            # IMU muñeca
-            data_wrist = DataReader(p_train = args.training_percent / 100, dataset='data_wrist')
-            params_ESANN = {"N_capas": 2}
-            model_ESANN_data_wrist = modelGenerator(modelID=modelID, data=data_wrist, params=params_ESANN, debug=False)
-            Ruta_model_ESANN_data_wrist = get_model_path(modelID)    
-            if os.path.isfile(Ruta_model_ESANN_data_wrist):
-                model_ESANN_data_wrist.load(modelID, args.dataset_folder)
-            else:
-                callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
-                model_ESANN_data_wrist.train()
-                model_ESANN_data_wrist.store(modelID, args.dataset_folder)
-                
-        elif ml_model.value == ML_Model.CAPTURE24.value and args.ml_sensor == ML_Sensor.TOTAL.value:
+        elif ml_model.value == ML_Model.CAPTURE24.value:
+            dataset_file = os.path.join(args.dataset_folder, CONVOLUTIONAL_DATASET_FILE)
+
             # IMUs muslo + muñeca
-            data_tot = DataReader(p_train = args.training_percent / 100, dataset='data_tot')
+            data_tot = DataReader(p_train = args.training_percent / 100, dataset=dataset_file)
             params_CAPTURE24 = {"N_capas": 6}
             model_CAPTURE24_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_CAPTURE24, debug=False)
             Ruta_model_CAPTURE24_data_tot = get_model_path(modelID)
@@ -319,37 +180,12 @@ def main(args):
             else:
                 callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
                 model_CAPTURE24_data_tot.train()
-                model_CAPTURE24_data_tot.store(modelID, args.dataset_folder)
-                
-        elif ml_model.value == ML_Model.CAPTURE24.value and args.ml_sensor == ML_Sensor.THIGH.value:
-            # IMU muslo
-            data_thigh = DataReader(p_train = args.training_percent / 100, dataset='data_thigh')
-            params_CAPTURE24 = {"N_capas": 6}
-            model_CAPTURE24_data_thigh = modelGenerator(modelID=modelID, data=data_thigh, params=params_CAPTURE24, debug=False)
-            Ruta_model_CAPTURE24_data_thigh = get_model_path(modelID)
-            if os.path.isfile(Ruta_model_CAPTURE24_data_thigh):
-                model_CAPTURE24_data_thigh.load(modelID, args.dataset_folder)
-            else:
-                callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
-                model_CAPTURE24_data_thigh.train()
-                model_CAPTURE24_data_thigh.store(modelID, args.dataset_folder)
-                
-        elif ml_model.value == ML_Model.CAPTURE24.value and args.ml_sensor == ML_Sensor.WRIST.value:
-            # IMU muñeca
-            data_wrist = DataReader(p_train = args.training_percent / 100, dataset='data_wrist')
-            params_CAPTURE24 = {"N_capas": 6}
-            model_CAPTURE24_data_wrist = modelGenerator(modelID=modelID, data=data_wrist, params=params_CAPTURE24, debug=False)
-            Ruta_model_CAPTURE24_data_wrist = get_model_path(modelID)  
-            if os.path.isfile(Ruta_model_CAPTURE24_data_wrist):
-                model_CAPTURE24_data_wrist.load(modelID, args.dataset_folder)
-            else:
-                callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
-                model_CAPTURE24_data_wrist.train()
-                model_CAPTURE24_data_wrist.store(modelID, args.dataset_folder)
-                
-        elif ml_model.value == ML_Model.RANDOM_FOREST.value and args.ml_sensor == ML_Sensor.TOTAL.value:
+         
+        elif ml_model.value == ML_Model.RANDOM_FOREST.value:
+            dataset_file = os.path.join(args.dataset_folder, FEATURE_DATASET_FILE)
+
             # IMUs muslo + muñeca
-            data_tot = DataReader(p_train = args.training_percent / 100, dataset='data_tot')
+            data_tot = DataReader(p_train = args.training_percent / 100, dataset=dataset_file)
             params_RandomForest = {"n_estimators": 3000}
             model_RandomForest_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_RandomForest, debug=False)
             Ruta_model_RandomForest_data_tot = get_model_path(modelID)
@@ -358,31 +194,7 @@ def main(args):
             else:
                 model_RandomForest_data_tot.train()
                 model_RandomForest_data_tot.store(modelID, args.dataset_folder)
-                
-        elif ml_model.value == ML_Model.RANDOM_FOREST.value and args.ml_sensor == ML_Sensor.THIGH.value:            
-            # IMU muslo
-            data_thigh = DataReader(p_train = args.training_percent / 100, dataset='data_thigh')
-            params_RandomForest = {"n_estimators": 3000}
-            model_RandomForest_data_thigh = modelGenerator(modelID=modelID, data=data_thigh, params=params_RandomForest, debug=False)
-            Ruta_model_RandomForest_data_thigh = get_model_path(modelID)
-            if os.path.isfile(Ruta_model_RandomForest_data_thigh):
-                model_RandomForest_data_thigh.load(modelID, args.dataset_folder)
-            else:
-                model_RandomForest_data_thigh.train()
-                model_RandomForest_data_thigh.store(modelID, args.dataset_folder)
-                
-        elif ml_model.value == ML_Model.RANDOM_FOREST.value and args.ml_sensor == ML_Sensor.WRIST.value:                        
-            # IMU muñeca
-            data_wrist = DataReader(p_train = args.training_percent / 100, dataset='data_wrist')
-            params_RandomForest = {"n_estimators": 3000}
-            model_RandomForest_data_wrist = modelGenerator(modelID=modelID, data=data_wrist, params=params_RandomForest, debug=False)
-            Ruta_model_RandomForest_data_wrist = get_model_path(modelID)
-            if os.path.isfile(Ruta_model_RandomForest_data_wrist):
-                model_RandomForest_data_wrist.load(modelID, args.dataset_folder)
-            else:
-                model_RandomForest_data_wrist.train()
-                model_RandomForest_data_wrist.store(modelID, args.dataset_folder)
-
+         
         _logger.info("Script ends here")
 
 def run():
