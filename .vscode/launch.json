@@ -10,7 +10,13 @@
           "request": "launch",
           "program": "${file}",
           "args": [
-            "--ml-models","ESANN",
+            // STEP01: training
+            //"--ml-models","ESANN",
+            //"--dataset-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data",
+            //"--training-percent", "70"
+
+            // STEP02: testing
+            "--model-id", "modelID_ESANN",
             "--dataset-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data",
             "--training-percent", "70"
           ],

@@ -69,6 +69,7 @@ rich==14.0.0
 roman-numerals-py==3.1.0
 scikit-learn==1.6.1
 scipy==1.15.3
+seaborn==0.13.2
 setuptools==80.9.0
 setuptools-scm==8.3.1
 six==1.17.0
@@ -85,7 +86,6 @@ statsmodels==0.14.4
 tensorboard==2.19.0
 tensorboard-data-server==0.7.2
 tensorflow==2.19.0
-tensorflow_cpu==2.19.0
 termcolor==3.1.0
 tf_keras==2.19.0
 threadpoolctl==3.6.0
