@@ -29,28 +29,21 @@ def modelGenerator(modelID:str, data, params:dict={}, verbose=False, debug=False
     
     # Aquí se llamarían a todos los modelos según su ID
     # 3 CNNs ESANN
-    if modelID == "SiMuRModel_ESANN_data_tot":
-        model = SiMuRModel_ESANN(data, params)
-    elif modelID == "SiMuRModel_ESANN_data_thigh":
-        model = SiMuRModel_ESANN(data, params)
-    elif modelID == "SiMuRModel_ESANN_data_wrist":
+    if modelID == "modelID_ESANN":
         model = SiMuRModel_ESANN(data, params)
     
     # 3 CNNs CAPTURE-24
-    elif modelID == "SiMuRModel_CAPTURE24_data_tot":
-        model = SiMuRModel_CAPTURE24(data, params)
-    elif modelID == "SiMuRModel_CAPTURE24_data_thigh":
-        model = SiMuRModel_CAPTURE24(data, params)
-    elif modelID == "SiMuRModel_CAPTURE24_data_wrist":
+    elif modelID == "modelID_CAPTURE24":
         model = SiMuRModel_CAPTURE24(data, params)
     
     # 3 Random Forests
-    elif modelID == "SiMuRModel_RandomForest_data_tot":
+    elif modelID == "modelID_RandomForest":
         model = SiMuRModel_RandomForest(data, params)
-    elif modelID == "SiMuRModel_RandomForest_data_thigh":
-        model = SiMuRModel_RandomForest(data, params)
-    elif modelID == "SiMuRModel_RandomForest_data_wrist":
-        model = SiMuRModel_RandomForest(data, params)
+
+    # 4 XGBoost
+    elif modelID == "modelID_XGBoost":
+        raise Exception("Model not implemented")
+
     else:
         model = None
         raise Exception("Model not implemented")

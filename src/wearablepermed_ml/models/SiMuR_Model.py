@@ -1,4 +1,5 @@
 import math
+import os
 import joblib # Librería empleada para guardar y cargar los modelos Random Forests
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
@@ -135,13 +136,17 @@ class SiMuRModel_ESANN(object):
     def store(self, modelID, path):
         # Método para guardar los pesos en path
         # Serialize weights to HDF5
-        self.model.save_weights(path + modelID + ".h5")
+        path = os.path.join(path, modelID + ".weights.h5")
+        
+        self.model.save_weights(path)
         print("Saved model to disk")
         return None
     
     def load(self, modelID, path):
         # Método para cargar los pesos desde el path indicado
-        self.model.load_weights(path + modelID + ".h5")
+        path = os.path.join(path, modelID + ".weights.h5")
+
+        self.model.load_weights(path)
         print("Loaded model from disk")
         # Evaluate loaded model on test data
         self.model.compile(loss='sparse_categorical_crossentropy', 

@@ -82,7 +82,7 @@ def time_warp(X, sigma=0.2):
     return X_new
 
 class DataReader(object):
-    def __init__(self, p_train, file_path):        
+    def __init__(self, p_train, file_path, label_encoder_path):        
         self.p_train = p_train
         
         stack_de_datos_y_etiquetas_PMP_tot = np.load(file_path)
@@ -103,7 +103,7 @@ class DataReader(object):
         
         # --------------------------------------------------------------------------------------------------
         # Realizamos el aumento de datos en el conjunto de entrenamiento. En el conjunto de test mantenemos
-        # los datos originales:
+        # los datos origifile_pathnales:
         num_filas = X_train.shape[0]     # 27190
         num_columnas = X_train.shape[1]  # 12
         profundidad = X_train.shape[2]
@@ -182,6 +182,5 @@ class DataReader(object):
         self.y_test = y_test
         
         # Guardar el LabelEncoder después de ajustarlo
-        path = '/home/simur/directorio_SiMuR_MachineLearning/WPM_24_02_2025/Data/'
-        joblib.dump(label_encoder, path+"label_encoder.pkl")
+        joblib.dump(label_encoder, label_encoder_path)
         
