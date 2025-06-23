@@ -133,10 +133,10 @@ class SiMuRModel_ESANN(object):
         # El código puede variar dependiendo del modelo
         return self.model.predict(X)
         
-    def store(self, modelID, path):
+    def store(self, model_id, path):
         # Método para guardar los pesos en path
         # Serialize weights to HDF5
-        path = os.path.join(path, modelID + ".weights.h5")
+        path = os.path.join(path, model_id + ".weights.h5")
         
         self.model.save_weights(path)
         print("Saved model to disk")
@@ -145,7 +145,7 @@ class SiMuRModel_ESANN(object):
     def load(self, model_id, path):
         # Método para cargar los pesos desde el path indicado
 
-        path = os.path.join(path, "modelID_" + model_id + ".weights.h5")
+        path = os.path.join(path, model_id + ".weights.h5")
 
         self.model.load_weights(path)
         print("Loaded model from disk")

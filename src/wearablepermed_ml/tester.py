@@ -30,19 +30,26 @@ def parse_args(args):
     """
     parser = argparse.ArgumentParser(description="Machine Learning Model Trainer")
     parser.add_argument(
+        "-case-id",
+        "--case-id",
+        dest="case_id",
+        required=True,
+        help="Case unique identifier."
+    ) 
+    parser.add_argument(
+        "-case-id-folder",
+        "--case-id-folder",
+        dest="case_id_folder",
+        required=True,
+        help="Choose the case id root folder."
+    )        
+    parser.add_argument(
         "-model-id",
         "--model-id",
         dest="model_id",
         required=True,
         help="Choose the model id."
-    ) 
-    parser.add_argument(
-        "-dataset-folder",
-        "--dataset-folder",
-        dest="dataset_folder",
-        required=True,
-        help="Choose the dataset root folder."
-    )       
+    )     
     parser.add_argument(
         '-training-percent',
         '--training-percent',
@@ -93,8 +100,12 @@ def main(args):
     args = parse_args(args)
     setup_logging(args.loglevel)
 
+    # create the output case id folder if not exist
+    case_id_folder = os.path.join(args.case_id_folder, args.case_id)
+    os.makedirs(case_id_folder, exist_ok=True)
+
     _logger.info("Tester starts here")
-    testing.tester(args.model_id, args.dataset_folder, args.training_percent)
+    testing.tester(case_id_folder, args.model_id, args.training_percent)
     _logger.info("Script ends here")
 
 def run():

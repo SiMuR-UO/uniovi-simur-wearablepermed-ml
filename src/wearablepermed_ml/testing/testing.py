@@ -18,10 +18,10 @@ class ML_Model(Enum):
     RANDOM_FOREST = 'RandomForest'
     XGBOOST = 'XGBoost'
     
-def tester(model_id, dataset_folder, training_percent):
+def tester(case_id_folder, model_id, training_percent):
     # Cargar el LabelEncoder
     # Ver las clases asociadas a cada número
-    test_label_encoder_path = os.path.join(dataset_folder, "label_encoder.pkl")
+    test_label_encoder_path = os.path.join(case_id_folder, "label_encoder.pkl")
     label_encoder = joblib.load(test_label_encoder_path)
 
     print(label_encoder.classes_)
@@ -39,12 +39,8 @@ def tester(model_id, dataset_folder, training_percent):
     mapeo = dict(zip(label_encoder.classes_, range(len(label_encoder.classes_))))
     print("Mapeo de etiquetas:", mapeo)
 
-    # get model type from filename
-    mode_tokens = model_id.split("_")
-    model_id = mode_tokens[1]
-
     if (model_id == ML_Model.ESANN.value):
-        test_dataset_path = os.path.join(dataset_folder, "data_all.npz")
+        test_dataset_path = os.path.join(case_id_folder, "data_all.npz")
 
         params = {
             "optimizer": "rmsprop",
@@ -56,7 +52,7 @@ def tester(model_id, dataset_folder, training_percent):
             "filterSize": 7
         }
     elif (model_id == ML_Model.CAPTURE24.value):
-        test_dataset_path = os.path.join(dataset_folder, "data_all.npz")
+        test_dataset_path = os.path.join(case_id_folder, "data_all.npz")
 
         params = {
             "optimizer": "rmsprop",
@@ -68,7 +64,7 @@ def tester(model_id, dataset_folder, training_percent):
             "filterSize": 7
         }
     elif (model_id == ML_Model.RANDOM_FOREST.value):
-        test_dataset_path = os.path.join(dataset_folder, "data_feature_all.npz")
+        test_dataset_path = os.path.join(case_id_folder, "data_feature_all.npz")
 
         params = {
             "n_estimators": 500
@@ -82,7 +78,7 @@ def tester(model_id, dataset_folder, training_percent):
 
     model = modelGenerator(modelID=model_id, data=data, params=params, debug=False)
 
-    model.load(model_id, dataset_folder)
+    model.load(model_id, case_id_folder)
 
     # print train/test sizes
     print(model.X_test.shape)
@@ -112,7 +108,7 @@ def tester(model_id, dataset_folder, training_percent):
     cm = confusion_matrix(model.y_test, y_final_predicton, labels=all_classes)
 
     # Graficar la matriz de confusión
-    confusion_matrix_test_path = os.path.join(dataset_folder, "confusion_matrix_test.png")
+    confusion_matrix_test_path = os.path.join(case_id_folder, "confusion_matrix_test.png")
 
     plt.figure(figsize=(10,7))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names_total, yticklabels=class_names_total)
@@ -130,7 +126,7 @@ def tester(model_id, dataset_folder, training_percent):
     print("Global F1 score = "+str(round(F1_score*100,2))+" [%]")
 
     # Save to a file
-    clasification_global_report_path = os.path.join(dataset_folder, "clasification_global_report.txt")
+    clasification_global_report_path = os.path.join(case_id_folder, "clasification_global_report.txt")
     with open(clasification_global_report_path, "w") as f:
         f.write(f"Global F1 Score: {F1_score:.4f}\n")
         f.write(f"Global accuracy score: {acc_score:.4f}\n")
@@ -144,6 +140,6 @@ def tester(model_id, dataset_folder, training_percent):
     classification_per_class_report = classification_report(model.y_test, y_final_predicton, labels=all_classes, target_names=class_names_total, zero_division=0)
     print(classification_per_class_report)        
 
-    clasification_per_class_report_path = os.path.join(dataset_folder, "clasification_per_class_report.txt")
+    clasification_per_class_report_path = os.path.join(case_id_folder, "clasification_per_class_report.txt")
     with open(clasification_per_class_report_path, "w") as f:        
         f.write(classification_per_class_report)

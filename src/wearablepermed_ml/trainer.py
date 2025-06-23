@@ -68,6 +68,20 @@ def parse_args(args):
     """
     parser = argparse.ArgumentParser(description="Machine Learning Model Trainer")
     parser.add_argument(
+        "-case-id",
+        "--case-id",
+        dest="case_id",
+        required=True,
+        help="Case unique identifier."
+    )
+    parser.add_argument(
+        "-case-id-folder",
+        "--case-id-folder",
+        dest="case_id_folder",
+        required=True,
+        help="Choose the case id root folder."
+    )        
+    parser.add_argument(
         "-ml-models",
         "--ml-models",
         type=parse_ml_model,
@@ -149,56 +163,60 @@ def main(args):
 
     _logger.info("Trainer starts here")
 
+    # create the output case id folder if not exist
+    case_id_folder = os.path.join(args.case_id_folder, args.case_id)
+    os.makedirs(case_id_folder, exist_ok=True)
+
     for ml_model in args.ml_models[0]:        
-        modelID = 'modelID_' + ml_model.value
+        modelID = ml_model.value
 
         if ml_model.value == ML_Model.ESANN.value:
-            dataset_file = os.path.join(args.dataset_folder, CONVOLUTIONAL_DATASET_FILE)
-            label_encoder_file = os.path.join(args.dataset_folder, LABEL_ENCODER_FILE)
+            dataset_file = os.path.join(case_id_folder, CONVOLUTIONAL_DATASET_FILE)
+            label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(p_train = args.training_percent / 100, file_path=dataset_file, label_encoder_path=label_encoder_file, random_state=42)
+            data_tot = DataReader(p_train = args.training_percent / 100, file_path=dataset_file, label_encoder_path=label_encoder_file)
             params_ESANN = {"N_capas": 2}
             model_ESANN_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_ESANN, debug=False)
             Ruta_model_ESANN_data_tot = get_model_path(modelID)
             # Si ya existe el modelo, se carga el fichero .h5. En caso contrario, se entrenan y salvan los modelos.
             # 3 CNNs ESANN
             if os.path.isfile(Ruta_model_ESANN_data_tot):
-                model_ESANN_data_tot.load(modelID, args.dataset_folder)
+                model_ESANN_data_tot.load(modelID, case_id_folder)
             else:
                 callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
                 model_ESANN_data_tot.train()
-                model_ESANN_data_tot.store(modelID, args.dataset_folder)
+                model_ESANN_data_tot.store(modelID, case_id_folder)
                 
         elif ml_model.value == ML_Model.CAPTURE24.value:
-            dataset_file = os.path.join(args.dataset_folder, CONVOLUTIONAL_DATASET_FILE)
-            label_encoder_file = os.path.join(args.dataset_folder, LABEL_ENCODER_FILE)
+            dataset_file = os.path.join(case_id_folder, CONVOLUTIONAL_DATASET_FILE)
+            label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(p_train = args.training_percent / 100, dataset=dataset_file, label_encoder_path=label_encoder_file, random_state=42)
+            data_tot = DataReader(p_train = args.training_percent / 100, dataset=dataset_file, label_encoder_path=label_encoder_file)
             params_CAPTURE24 = {"N_capas": 6}
             model_CAPTURE24_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_CAPTURE24, debug=False)
             Ruta_model_CAPTURE24_data_tot = get_model_path(modelID)
             if os.path.isfile(Ruta_model_CAPTURE24_data_tot):
-                model_CAPTURE24_data_tot.load(modelID, args.dataset_folder)
+                model_CAPTURE24_data_tot.load(modelID, case_id_folder)
             else:
                 callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
                 model_CAPTURE24_data_tot.train()
          
         elif ml_model.value == ML_Model.RANDOM_FOREST.value:
-            dataset_file = os.path.join(args.dataset_folder, FEATURE_DATASET_FILE)
-            label_encoder_file = os.path.join(args.dataset_folder, LABEL_ENCODER_FILE)
+            dataset_file = os.path.join(case_id_folder, FEATURE_DATASET_FILE)
+            label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(p_train = args.training_percent / 100, dataset=dataset_file, label_encoder_path=label_encoder_file, random_state=42)
+            data_tot = DataReader(p_train = args.training_percent / 100, dataset=dataset_file, label_encoder_path=label_encoder_file)
             params_RandomForest = {"n_estimators": 3000}
             model_RandomForest_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_RandomForest, debug=False)
             Ruta_model_RandomForest_data_tot = get_model_path(modelID)
             if os.path.isfile(Ruta_model_RandomForest_data_tot):
-                model_RandomForest_data_tot.load(modelID, args.dataset_folder)
+                model_RandomForest_data_tot.load(modelID, case_id_folder)
             else:
                 model_RandomForest_data_tot.train()
-                model_RandomForest_data_tot.store(modelID, args.dataset_folder)
+                model_RandomForest_data_tot.store(modelID, case_id_folder)
          
         _logger.info("Script ends here")
 
