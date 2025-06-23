@@ -1,5 +1,5 @@
-# Use Slim 3.8 as the base image
-FROM python:3.8-slim
+# base image
+FROM python:3.12-slim
 
 LABEL maintainer="Miguel Salinas Ganedo <UO34525@uniovi.es>"
 
