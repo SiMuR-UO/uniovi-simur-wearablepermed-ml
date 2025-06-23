@@ -142,9 +142,10 @@ class SiMuRModel_ESANN(object):
         print("Saved model to disk")
         return None
     
-    def load(self, modelID, path):
+    def load(self, model_id, path):
         # Método para cargar los pesos desde el path indicado
-        path = os.path.join(path, modelID + ".weights.h5")
+
+        path = os.path.join(path, "modelID_" + model_id + ".weights.h5")
 
         self.model.load_weights(path)
         print("Loaded model from disk")

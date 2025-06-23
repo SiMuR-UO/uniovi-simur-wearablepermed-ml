@@ -5,7 +5,7 @@ from data import DataReader
 import ast
 
 # Model factory pattern
-def modelGenerator(modelID:str, data, params:dict={}, verbose=False, debug=False):
+def modelGenerator(modelID: str, data, params:dict={}, verbose=False, debug=False):
     '''
     ARGUMENTS
         modelID (str)                       ID that indicates the model type
@@ -29,19 +29,19 @@ def modelGenerator(modelID:str, data, params:dict={}, verbose=False, debug=False
     
     # Aquí se llamarían a todos los modelos según su ID
     # 3 CNNs ESANN
-    if modelID == "modelID_ESANN":
+    if modelID == "ESANN":
         model = SiMuRModel_ESANN(data, params)
     
     # 3 CNNs CAPTURE-24
-    elif modelID == "modelID_CAPTURE24":
+    elif modelID == "CAPTURE24":
         model = SiMuRModel_CAPTURE24(data, params)
     
     # 3 Random Forests
-    elif modelID == "modelID_RandomForest":
+    elif modelID == "RandomForest":
         model = SiMuRModel_RandomForest(data, params)
 
     # 4 XGBoost
-    elif modelID == "modelID_XGBoost":
+    elif modelID == "XGBoost":
         raise Exception("Model not implemented")
 
     else:
