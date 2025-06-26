@@ -75,7 +75,7 @@ def time_warp(X, sigma=0.2):
     time_warp -= time_warp[0]
     time_warp /= time_warp[-1]
 
-    # Interpolamos el vector original según la distorsión
+    # Interpolamos el vector original según la distRorsión
     new_indices = np.interp(np.linspace(0, 1, n), time_warp, np.linspace(0, 1, n))
     X_new = np.interp(new_indices, np.linspace(0, 1, n), X)
 
