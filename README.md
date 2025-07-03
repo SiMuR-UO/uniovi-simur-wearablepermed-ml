@@ -188,6 +188,86 @@ de clasificación.
      $ docker push ofertoio/uniovi-simur-wearablepermed-ml:1.0.0
      ```
 
+## Using GPU
+Follow these steps to use GPU from your python script:
+
+- **STEP01: Install NVIDIA Drivers**
+     Install NVIDIA Drivers for your card, in our case: NVIDIA GeForce RTX 4060 Ti card
+
+- **STEP02: Install CUDA Toolkit**
+     ```
+     $ sudo apt-get install -y nvidia-cuda-toolkit
+     ```
+
+     Get CUDA version installed:
+
+     ```
+     $ nvcc --version
+     nvcc: NVIDIA (R) Cuda compiler driver
+     Copyright (c) 2005-2023 NVIDIA Corporation
+     Built on Fri_Jan__6_16:45:21_PST_2023
+     Cuda compilation tools, release 12.0, V12.0.140
+     Build cuda_12.0.r12.0/compiler.32267302_0
+     ```
+
+- **STEP03: Install cuDNN**
+
+     Install cuDNN for DeepLearning from python compatible with your CUDA version:
+
+     ```
+	wget https://developer.download.nvidia.com/compute/cudnn/9.10.2/local_installers/cudnn-local-repo-ubuntu2404-9.10.2_1.0-1_amd64.deb
+	sudo dpkg -i cudnn-local-repo-ubuntu2404-9.10.2_1.0-1_amd64.deb
+	sudo cp /var/cudnn-local-repo-ubuntu2404-9.10.2/cudnn-*-keyring.gpg /usr/share/keyrings/
+	sudo apt-get update
+	sudo apt-get -y install cudnn
+     ```
+
+	Install CUDA 12 from aptitude, perform the above configuration but install the CUDA 12 specific package:
+
+     ```
+	sudo apt-get -y install cudnn-cuda-12
+     ```
+
+     Check cuDNN installed:
+     ```
+     $ dpkg -l | grep libcudnn
+     ii  libcudnn9-cuda-12                             9.10.2.21-1                              amd64        cuDNN runtime libraries for CUDA 12.9
+     ii  libcudnn9-dev-cuda-12                         9.10.2.21-1                              amd64        cuDNN development libraries for CUDA 12.9
+     ii  libcudnn9-headers-cuda-12                     9.10.2.21-1                              amd64        cuDNN header files for CUDA 12.9
+     ii  libcudnn9-static-cuda-12                      9.10.2.21-1                              amd64        cuDNN static libraries for CUDA 12.9
+     ```
+
+- **STEP04: Configure CUDA environment**
+     Create a file called **cuda_env.sh** with these env variables configurations:
+
+     ```
+     export CUDA_HOME=/usr/lib/nvidia-cuda-toolkit
+     export PATH=$CUDA_HOME/bin:$PATH
+     export LD_LIBRARY_PATH=$CUDA_HOME/compute-sanitizer:$LD_LIBRARY_PATH
+     export XLA_FLAGS=--xla_gpu_cuda_data_dir=/usr/lib/cuda
+     ```
+
+     make executable the **cuda_env.sh** file:
+
+     ```
+     $ chmod +x cuda_env.sh 
+     ```
+
+     Move the file to profile.d folder, to have these env variables globally, for any user server sessions     
+     ```
+     $ sudo mv cuda_env.sh /etc/profile.d/
+     ```
+     
+- **STEP05: Relogin a session**
+     You must logout and login again using your accout to have access to CUDA env variables. Check it:
+
+     ```
+     echo $CUDA_HOME
+     echo $PATH
+     echo $LD_LIBRARY_PATH
+     echo $XLA_FLAGS
+     ```
+
 ## Note
 
 This project has been set up using PyScaffold 4.6. For details and usage
