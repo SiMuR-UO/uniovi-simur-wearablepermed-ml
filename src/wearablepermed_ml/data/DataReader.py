@@ -10,12 +10,19 @@
 #         data.y_test
 
 
+from enum import Enum
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import joblib
 
+class ML_Model(Enum):
+    ESANN = 'ESANN'
+    CAPTURE24 = 'CAPTURE24'
+    RANDOM_FOREST = 'RandomForest'
+    XGBOOST = 'XGBoost'
+    
 WINDOW_CONCATENATED_DATA = "arr_0"
 WINDOW_ALL_LABELS = "arr_1"
 
@@ -82,7 +89,7 @@ def time_warp(X, sigma=0.2):
     return X_new
 
 class DataReader(object):
-    def __init__(self, p_train, file_path, label_encoder_path):        
+    def __init__(self, modelID, p_train, file_path, label_encoder_path, add_sintetic_data=False):        
         self.p_train = p_train
         
         stack_de_datos_y_etiquetas_PMP_tot = np.load(file_path)
@@ -104,77 +111,79 @@ class DataReader(object):
         # --------------------------------------------------------------------------------------------------
         # Realizamos el aumento de datos en el conjunto de entrenamiento. En el conjunto de test mantenemos
         # los datos origifile_pathnales:
-        num_filas = X_train.shape[0]     # 27190
-        num_columnas = X_train.shape[1]  # 12
-        profundidad = X_train.shape[2]
+        num_filas = X_train.shape[0]
+        num_columnas = X_train.shape[1]
+
+        if ((modelID == ML_Model.ESANN or modelID == ML_Model.CAPTURE24) and add_sintetic_data == True):
+            profundidad = X_train.shape[2]
         
-        # 1.- Jittering
-        # ---------------------------
-        # Generar nuevas series con jitter (una por cada serie original)
-        datos_aumentados_jittering = np.zeros((num_filas, num_columnas, profundidad))
-        etiquetas_aumentadas_jittering = np.zeros((num_filas,))
-        
-        for i in range(num_filas):
-            for j in range(num_columnas):
-                # Extraemos la serie temporal de longitud 250
-                serie = X_train[i, j, :]
-                nueva_serie = jitter(serie, 0.01)          # Añadir ruido gaussiano a la serie temporal
-                datos_aumentados_jittering[i,j,:] = nueva_serie
-                etiquetas_aumentadas_jittering[i] = y_train[i]  # Mantener la misma etiqueta
-        
-        # X_train = np.concatenate((X_train, datos_aumentados_jittering), axis=0)      # X_train original + X_train aumentado
-        # y_train = np.concatenate((y_train, etiquetas_aumentadas_jittering), axis=0)  # y_train original + y_train aumentado
-        
-        
-        # 2.- Magnitude Warping
-        # ---------------------------
-        # Generar nuevas series con Magnitude Warping (una por cada serie original)
-        datos_aumentados_magnitude_warping = np.zeros((num_filas, num_columnas, profundidad))
-        etiquetas_aumentadas_magnitude_warping = np.zeros((num_filas,))
-        for i in range(num_filas):
-            for j in range(num_columnas):
-                # Extraemos la serie temporal de longitud 250
-                serie = X_train[i, j, :]
-                nueva_serie = magnitude_warp(serie, 0.03)          
-                datos_aumentados_magnitude_warping[i,j,:] = nueva_serie
-                etiquetas_aumentadas_magnitude_warping[i] = y_train[i]  # Mantener la misma etiqueta
-        
-        # X_train = np.concatenate((X_train, datos_aumentados_jittering, datos_aumentados_magnitude_warping), axis=0)          # X_train original + X_train aumentado
-        # y_train = np.concatenate((y_train, etiquetas_aumentadas_jittering, etiquetas_aumentadas_magnitude_warping), axis=0)  # y_train original + y_train aumentado
-        
-        
-        # 3.- Shifting
-        # ---------------------------
-        # Generar nuevas series con Shifting (una por cada serie original)
-        datos_aumentados_shifting = np.zeros((num_filas, num_columnas, profundidad))
-        etiquetas_aumentadas_shifting = np.zeros((num_filas,))
-        for i in range(num_filas):
-            for j in range(num_columnas):
-                # Extraemos la serie temporal de longitud 250
-                serie = X_train[i, j, :]
-                nueva_serie = shift(serie, 0.03)       
-                datos_aumentados_shifting[i,j,:] = nueva_serie
-                etiquetas_aumentadas_shifting[i] = y_train[i]  # Mantener la misma etiqueta
-                
-        # X_train = np.concatenate((X_train, datos_aumentados_jittering, datos_aumentados_magnitude_warping, datos_aumentados_shifting), axis=0)              # X_train original + X_train aumentado
-        # y_train = np.concatenate((y_train, etiquetas_aumentadas_jittering, etiquetas_aumentadas_magnitude_warping, etiquetas_aumentadas_shifting), axis=0)  # y_train original + y_train aumentado
-        
-        
-        # 4.- Time Warping
-        # ---------------------------
-        # Generar nuevas series con Time Warping (una por cada serie original)
-        datos_aumentados_time_warping = np.zeros((num_filas, num_columnas, profundidad))
-        etiquetas_aumentadas_time_warping = np.zeros((num_filas,))
-        for i in range(num_filas):
-            for j in range(num_columnas):
-                # Extraemos la serie temporal de longitud 250
-                serie = X_train[i, j, :]
-                nueva_serie = shift(serie, 0.03)       
-                datos_aumentados_time_warping[i,j,:] = nueva_serie
-                etiquetas_aumentadas_time_warping[i] = y_train[i]  # Mantener la misma etiqueta
-        
-        X_train = np.concatenate((X_train, datos_aumentados_jittering, datos_aumentados_magnitude_warping, datos_aumentados_shifting, datos_aumentados_time_warping), axis=0)                  # X_train original + X_train aumentado
-        y_train = np.concatenate((y_train, etiquetas_aumentadas_jittering, etiquetas_aumentadas_magnitude_warping, etiquetas_aumentadas_shifting, etiquetas_aumentadas_time_warping), axis=0)  # y_train original + y_train aumentado
+            # 1.- Jittering
+            # ---------------------------
+            # Generar nuevas series con jitter (una por cada serie original)
+            datos_aumentados_jittering = np.zeros((num_filas, num_columnas, profundidad))
+            etiquetas_aumentadas_jittering = np.zeros((num_filas,))
+            
+            for i in range(num_filas):
+                for j in range(num_columnas):
+                    # Extraemos la serie temporal de longitud 250
+                    serie = X_train[i, j, :]
+                    nueva_serie = jitter(serie, 0.01)          # Añadir ruido gaussiano a la serie temporal
+                    datos_aumentados_jittering[i,j,:] = nueva_serie
+                    etiquetas_aumentadas_jittering[i] = y_train[i]  # Mantener la misma etiqueta
+            
+            # X_train = np.concatenate((X_train, datos_aumentados_jittering), axis=0)      # X_train original + X_train aumentado
+            # y_train = np.concatenate((y_train, etiquetas_aumentadas_jittering), axis=0)  # y_train original + y_train aumentado
+            
+            
+            # 2.- Magnitude Warping
+            # ---------------------------
+            # Generar nuevas series con Magnitude Warping (una por cada serie original)
+            datos_aumentados_magnitude_warping = np.zeros((num_filas, num_columnas, profundidad))
+            etiquetas_aumentadas_magnitude_warping = np.zeros((num_filas,))
+            for i in range(num_filas):
+                for j in range(num_columnas):
+                    # Extraemos la serie temporal de longitud 250
+                    serie = X_train[i, j, :]
+                    nueva_serie = magnitude_warp(serie, 0.03)          
+                    datos_aumentados_magnitude_warping[i,j,:] = nueva_serie
+                    etiquetas_aumentadas_magnitude_warping[i] = y_train[i]  # Mantener la misma etiqueta
+            
+            # X_train = np.concatenate((X_train, datos_aumentados_jittering, datos_aumentados_magnitude_warping), axis=0)          # X_train original + X_train aumentado
+            # y_train = np.concatenate((y_train, etiquetas_aumentadas_jittering, etiquetas_aumentadas_magnitude_warping), axis=0)  # y_train original + y_train aumentado
+            
+            
+            # 3.- Shifting
+            # ---------------------------
+            # Generar nuevas series con Shifting (una por cada serie original)
+            datos_aumentados_shifting = np.zeros((num_filas, num_columnas, profundidad))
+            etiquetas_aumentadas_shifting = np.zeros((num_filas,))
+            for i in range(num_filas):
+                for j in range(num_columnas):
+                    # Extraemos la serie temporal de longitud 250
+                    serie = X_train[i, j, :]
+                    nueva_serie = shift(serie, 0.03)       
+                    datos_aumentados_shifting[i,j,:] = nueva_serie
+                    etiquetas_aumentadas_shifting[i] = y_train[i]  # Mantener la misma etiqueta
+                    
+            # X_train = np.concatenate((X_train, datos_aumentados_jittering, datos_aumentados_magnitude_warping, datos_aumentados_shifting), axis=0)              # X_train original + X_train aumentado
+            # y_train = np.concatenate((y_train, etiquetas_aumentadas_jittering, etiquetas_aumentadas_magnitude_warping, etiquetas_aumentadas_shifting), axis=0)  # y_train original + y_train aumentado
+            
+            
+            # 4.- Time Warping
+            # ---------------------------
+            # Generar nuevas series con Time Warping (una por cada serie original)
+            datos_aumentados_time_warping = np.zeros((num_filas, num_columnas, profundidad))
+            etiquetas_aumentadas_time_warping = np.zeros((num_filas,))
+            for i in range(num_filas):
+                for j in range(num_columnas):
+                    # Extraemos la serie temporal de longitud 250
+                    serie = X_train[i, j, :]
+                    nueva_serie = shift(serie, 0.03)       
+                    datos_aumentados_time_warping[i,j,:] = nueva_serie
+                    etiquetas_aumentadas_time_warping[i] = y_train[i]  # Mantener la misma etiqueta
+            
+            X_train = np.concatenate((X_train, datos_aumentados_jittering, datos_aumentados_magnitude_warping, datos_aumentados_shifting, datos_aumentados_time_warping), axis=0)                  # X_train original + X_train aumentado
+            y_train = np.concatenate((y_train, etiquetas_aumentadas_jittering, etiquetas_aumentadas_magnitude_warping, etiquetas_aumentadas_shifting, etiquetas_aumentadas_time_warping), axis=0)  # y_train original + y_train aumentado
         
         self.X_train = X_train
         self.y_train = y_train

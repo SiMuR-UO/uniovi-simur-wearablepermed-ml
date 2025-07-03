@@ -8,7 +8,21 @@ import numpy as np
 from data import DataReader
 from models.model_generator import modelGenerator
 from basic_functions.address import *
-import keras
+from tensorflow import keras
+
+import tensorflow as tf
+
+# Configuration du GPU
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    try:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        print(f"{len(gpus)} GPU(s) detected and VRAM set to crossover mode..")
+    except RuntimeError as e:
+        print(f"GPU configuration error : {e}")
+else:
+    print("⚠️ I also discovered the GPU. Training takes place on the CPU.")
 
 __author__ = "Miguel Salinas <uo34525@uniovi.es>, Alejandro <uo265351@uniovi.es>"
 __copyright__ = "Uniovi"
@@ -104,7 +118,15 @@ def parse_args(args):
         type=int,
         default=70,
         help="Training percent"
-    )    
+    )
+    parser.add_argument(
+        '-add-sintetic-data',
+        '--add-sintetic-data',
+        dest='add_sintetic_data',
+        type=bool,
+        default=False,
+        help="Add sintetic data for training"
+    )     
     parser.add_argument(
         "-v",
         "--verbose",
@@ -170,12 +192,12 @@ def main(args):
     for ml_model in args.ml_models[0]:        
         modelID = ml_model.value
 
-        if ml_model.value == ML_Model.ESANN.value:
+        if modelID == ML_Model.ESANN.value:
             dataset_file = os.path.join(case_id_folder, CONVOLUTIONAL_DATASET_FILE)
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(p_train = args.training_percent / 100, file_path=dataset_file, label_encoder_path=label_encoder_file)
+            data_tot = DataReader(modelID=modelID, p_train = args.training_percent / 100, file_path=dataset_file, label_encoder_path=label_encoder_file)
             params_ESANN = {"N_capas": 2}
             model_ESANN_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_ESANN, debug=False)
             Ruta_model_ESANN_data_tot = get_model_path(modelID)
@@ -188,12 +210,12 @@ def main(args):
                 model_ESANN_data_tot.train()
                 model_ESANN_data_tot.store(modelID, case_id_folder)
                 
-        elif ml_model.value == ML_Model.CAPTURE24.value:
+        elif modelID == ML_Model.CAPTURE24.value:
             dataset_file = os.path.join(case_id_folder, CONVOLUTIONAL_DATASET_FILE)
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(p_train = args.training_percent / 100, dataset=dataset_file, label_encoder_path=label_encoder_file)
+            data_tot = DataReader(modelID=modelID, p_train = args.training_percent / 100, file_path=dataset_file, label_encoder_path=label_encoder_file)
             params_CAPTURE24 = {"N_capas": 6}
             model_CAPTURE24_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_CAPTURE24, debug=False)
             Ruta_model_CAPTURE24_data_tot = get_model_path(modelID)
@@ -202,13 +224,14 @@ def main(args):
             else:
                 callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
                 model_CAPTURE24_data_tot.train()
+                model_CAPTURE24_data_tot.store(modelID, case_id_folder)
          
-        elif ml_model.value == ML_Model.RANDOM_FOREST.value:
+        elif modelID == ML_Model.RANDOM_FOREST.value:
             dataset_file = os.path.join(case_id_folder, FEATURE_DATASET_FILE)
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(p_train = args.training_percent / 100, dataset=dataset_file, label_encoder_path=label_encoder_file)
+            data_tot = DataReader(modelID=modelID, p_train = args.training_percent / 100, file_path=dataset_file, label_encoder_path=label_encoder_file)
             params_RandomForest = {"n_estimators": 3000}
             model_RandomForest_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_RandomForest, debug=False)
             Ruta_model_RandomForest_data_tot = get_model_path(modelID)
