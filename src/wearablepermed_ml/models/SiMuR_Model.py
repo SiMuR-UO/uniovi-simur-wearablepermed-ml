@@ -389,6 +389,10 @@ class SiMuRModel_RandomForest(object):
         # Los datos de entrenamiento vienen en el parametro data:
         #     - Vienen pre-procesados.
         #     - d".h5"ain = data.y_train
+        self.X_train = data.X_train
+        self.X_test  = data.X_test
+        
+        self.y_train = data.y_train
         self.y_test  = data.y_test
 
         #############################################################################

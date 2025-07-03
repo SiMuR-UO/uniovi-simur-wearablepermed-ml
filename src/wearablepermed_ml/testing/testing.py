@@ -74,7 +74,7 @@ def tester(case_id_folder, model_id, training_percent):
         raise Exception("Model training not implemented")
         
     # Testeamos el rendimiento del modelo de clasificación con los DATOS TOTALES
-    data = DataReader(p_train = training_percent, file_path=test_dataset_path, label_encoder_path=test_label_encoder_path)
+    data = DataReader(modelID=model_id, p_train = training_percent, file_path=test_dataset_path, label_encoder_path=test_label_encoder_path)
 
     model = modelGenerator(modelID=model_id, data=data, params=params, debug=False)
 
