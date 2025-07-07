@@ -25,16 +25,15 @@ class SiMuRModel_ESANN(object):
         # Aquí se tratan los parámetros del modelo. Esto es necesario porque estos modelos contienen muchos hiperparámetros
         
         # - Hiperparámetros asociados a las opciones de entrenamiento de la CNN
-        self.optimizador = params.get("optimizer", "rmsprop")             # especifica el optimizador a utilizar durante el entrenamiento
+        self.optimizador = params.get("optimizer", "adam")                # especifica el optimizador a utilizar durante el entrenamiento
         self.tamanho_minilote = params.get("miniBatchSize", 10)           # especifica el tamaño del mini-lote
-        self.tasa_aprendizaje = params.get("lr", 0.0004549)               # especifica el learning-rate empleado durante el entrenamiento
+        self.tasa_aprendizaje = params.get("lr", 0.1)                     # especifica el learning-rate empleado durante el entrenamiento
         
         # - Hiperparámetros asociados a la arquitectura de la red CNN
         self.N_capas = params.get("N_capas", 2)                           # especifica el número de capas ocultas de la red
         self.activacion_capas_ocultas = params.get("activation", "relu")  # especifica la función de activación asociada las neuronas de las capas ocultas
         self.numero_filtros = params.get("numFilters", 12)                # especifica el número de filtros utilizados en las capas ocultas de la red
         self.tamanho_filtro = params.get("filterSize", 7)                 # especifica el tamaño de los filtros de las capas ocultas
-        # self.dimension_de_entrada = params.get()
         
         self.testMetrics = []
         self.metrics = [accuracy_score, f1_score]
