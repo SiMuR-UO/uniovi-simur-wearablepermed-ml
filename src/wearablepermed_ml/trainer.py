@@ -30,9 +30,6 @@ __license__ = "MIT"
 
 _logger = logging.getLogger(__name__)
 
-WINDOW_CONCATENATED_DATA = "arr_0"
-WINDOW_ALL_LABELS = "arr_1"
-
 CONVOLUTIONAL_DATASET_FILE = "data_all.npz"
 FEATURE_DATASET_FILE = "data_feature_all.npz"
 LABEL_ENCODER_FILE = "label_encoder.pkl"
@@ -42,6 +39,10 @@ class ML_Model(Enum):
     CAPTURE24 = 'CAPTURE24'
     RANDOM_FOREST = 'RandomForest'
     XGBOOST = 'XGBoost'
+
+class Split_Method(Enum):
+    WINDOW = 'Window'
+    PARTICIPANT = 'Participant'
 
 class ML_Sensor(Enum):
     PI = 'thigh'
@@ -110,15 +111,34 @@ def parse_args(args):
         dest="dataset_folder",
         required=True,
         help="Choose the dataset root folder."
-    )       
+    )
+    parser.add_argument(
+        '-split-method',
+        '--split-method',
+        type=Split_Method,
+        choices=list(Split_Method),
+        default=Split_Method.WINDOW,        
+        required=True,
+        dest='split_method',
+        help="Split method"
+    )            
     parser.add_argument(
         '-training-percent',
         '--training-percent',
         dest='training_percent',
         type=int,
         default=70,
+        required=True,
         help="Training percent"
     )
+    parser.add_argument(
+        '-validation-percent',
+        '--validation-percent',
+        dest='validation_percent',
+        type=int,
+        default=20,
+        help="Validation percent"
+    )    
     parser.add_argument(
         '-add-sintetic-data',
         '--add-sintetic-data',
@@ -197,7 +217,7 @@ def main(args):
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(modelID=modelID, p_train = args.training_percent / 100, file_path=dataset_file, label_encoder_path=label_encoder_file)
+            data_tot = DataReader(modelID=modelID, p_train = args.training_percent, p_validation = args.validation_percent, file_path=dataset_file, label_encoder_path=label_encoder_file, split_method=args.split_method)
             params_ESANN = {"N_capas": 2}
             model_ESANN_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_ESANN, debug=False)
             Ruta_model_ESANN_data_tot = get_model_path(modelID)
@@ -215,7 +235,7 @@ def main(args):
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(modelID=modelID, p_train = args.training_percent / 100, file_path=dataset_file, label_encoder_path=label_encoder_file)
+            data_tot = DataReader(modelID=modelID, p_train = args.training_percent, p_validation = args.validation_percent, file_path=dataset_file, label_encoder_path=label_encoder_file, split_method=args.split_method)
             params_CAPTURE24 = {"N_capas": 6}
             model_CAPTURE24_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_CAPTURE24, debug=False)
             Ruta_model_CAPTURE24_data_tot = get_model_path(modelID)
@@ -231,7 +251,7 @@ def main(args):
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(modelID=modelID, p_train = args.training_percent / 100, file_path=dataset_file, label_encoder_path=label_encoder_file)
+            data_tot = DataReader(modelID=modelID, p_train = args.training_percent, p_validation = args.validation_percent, file_path=dataset_file, label_encoder_path=label_encoder_file, split_method=args.split_method)
             params_RandomForest = {"n_estimators": 3000}
             model_RandomForest_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_RandomForest, debug=False)
             Ruta_model_RandomForest_data_tot = get_model_path(modelID)

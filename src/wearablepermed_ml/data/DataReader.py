@@ -16,15 +16,21 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import joblib
+from collections import defaultdict
 
 class ML_Model(Enum):
     ESANN = 'ESANN'
     CAPTURE24 = 'CAPTURE24'
     RANDOM_FOREST = 'RandomForest'
     XGBOOST = 'XGBoost'
-    
+
+class Split_Method(Enum):
+    WINDOW = 'Window'
+    PARTICIPANT = 'Participant'
+
 WINDOW_CONCATENATED_DATA = "arr_0"
 WINDOW_ALL_LABELS = "arr_1"
+WINDOW_ALL_METADATA = "arr_2"
 
 # Jittering
 def jitter(X, sigma=0.5):
@@ -89,12 +95,15 @@ def time_warp(X, sigma=0.2):
     return X_new
 
 class DataReader(object):
-    def __init__(self, modelID, p_train, file_path, label_encoder_path, add_sintetic_data=False):        
-        self.p_train = p_train
+    def __init__(self, modelID, p_train, p_validation, file_path, label_encoder_path, add_sintetic_data=False, split_method=Split_Method.WINDOW):        
+        self.p_train = p_train / 100
+        self.p_validation = p_validation / 100
+        self.p_test = 1 - (self.p_train + self.p_validation )
         
         stack_de_datos_y_etiquetas_PMP_tot = np.load(file_path)
         datos_input = stack_de_datos_y_etiquetas_PMP_tot[WINDOW_CONCATENATED_DATA]
         etiquetas_output = stack_de_datos_y_etiquetas_PMP_tot[WINDOW_ALL_LABELS]
+        metadata_output = stack_de_datos_y_etiquetas_PMP_tot[WINDOW_ALL_METADATA]
 
         # X data
         X = datos_input
@@ -106,8 +115,20 @@ class DataReader(object):
         y_encoded = label_encoder.fit_transform(etiquetas_output)
         
         # Split train and test datasets
-        X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, train_size=p_train, random_state=42)
+        if split_method == Split_Method.WINDOW:
+            X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, train_size=self.p_train, random_state=42)
+        else:
+            grouped = defaultdict(list)
+            for s in metadata_output:
+                grouped[s].append(s)
+                metadata_grouped = dict(grouped)
+
+                metadata_keys = list(metadata_grouped.keys())
+                metadata_keys_len = len(metadata_keys)
         
+                metadata_keys_train = round(metadata_keys_len * self.p_train)
+                metadata_keys = [metadata_grouped[i] for i in list(range(metadata_keys_train))]
+
         # --------------------------------------------------------------------------------------------------
         # Realizamos el aumento de datos en el conjunto de entrenamiento. En el conjunto de test mantenemos
         # los datos origifile_pathnales:
