@@ -33,6 +33,7 @@ _logger = logging.getLogger(__name__)
 CONVOLUTIONAL_DATASET_FILE = "data_all.npz"
 FEATURE_DATASET_FILE = "data_feature_all.npz"
 LABEL_ENCODER_FILE = "label_encoder.pkl"
+CONFIG_FILE = "config.cfg"
 
 class ML_Model(Enum):
     ESANN = 'ESANN'
@@ -208,9 +209,12 @@ def main(args):
         if modelID == ML_Model.ESANN.value:
             dataset_file = os.path.join(case_id_folder, CONVOLUTIONAL_DATASET_FILE)
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
+            config_file = os.path.join(case_id_folder, CONFIG_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(modelID=modelID, p_train = args.training_percent, p_validation = args.validation_percent, file_path=dataset_file, label_encoder_path=label_encoder_file, split_method=args.split_method)
+            data_tot = DataReader(modelID=modelID, p_train = args.training_percent, p_validation = args.validation_percent, 
+                                  file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file,
+                                  split_method=args.split_method)
             params_ESANN = {"N_capas": 2}
             model_ESANN_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_ESANN, debug=False)
             Ruta_model_ESANN_data_tot = get_model_path(modelID)
@@ -226,9 +230,12 @@ def main(args):
         elif modelID == ML_Model.CAPTURE24.value:
             dataset_file = os.path.join(case_id_folder, CONVOLUTIONAL_DATASET_FILE)
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
+            config_file = os.path.join(case_id_folder, CONFIG_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(modelID=modelID, p_train = args.training_percent, p_validation = args.validation_percent, file_path=dataset_file, label_encoder_path=label_encoder_file, split_method=args.split_method)
+            data_tot = DataReader(modelID=modelID, p_train = args.training_percent, p_validation = args.validation_percent, 
+                                  file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file,
+                                  split_method=args.split_method)
             params_CAPTURE24 = {"N_capas": 6}
             model_CAPTURE24_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_CAPTURE24, debug=False)
             Ruta_model_CAPTURE24_data_tot = get_model_path(modelID)
@@ -242,9 +249,12 @@ def main(args):
         elif modelID == ML_Model.RANDOM_FOREST.value:
             dataset_file = os.path.join(case_id_folder, FEATURE_DATASET_FILE)
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
+            config_file = os.path.join(case_id_folder, CONFIG_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(modelID=modelID, p_train = args.training_percent, p_validation = args.validation_percent, file_path=dataset_file, label_encoder_path=label_encoder_file, split_method=args.split_method)
+            data_tot = DataReader(modelID=modelID, p_train = args.training_percent, p_validation = args.validation_percent,
+                                   file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file,
+                                   split_method=args.split_method)
             params_RandomForest = {"n_estimators": 3000}
             model_RandomForest_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_RandomForest, debug=False)
             Ruta_model_RandomForest_data_tot = get_model_path(modelID)

@@ -11,6 +11,7 @@
 
 
 from enum import Enum
+import os
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
@@ -95,7 +96,7 @@ def time_warp(X, sigma=0.2):
     return X_new
 
 class DataReader(object):
-    def __init__(self, modelID, p_train, p_validation, file_path, label_encoder_path, add_sintetic_data=False, split_method=Split_Method.WINDOW):        
+    def __init__(self, modelID, p_train, p_validation, file_path, label_encoder_path, config_path, add_sintetic_data=False, split_method=Split_Method.WINDOW):        
         self.p_train = p_train / 100
 
         if (p_validation is not None):
@@ -122,8 +123,10 @@ class DataReader(object):
         else:
             X_train = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
             y_train = np.empty((0, 1))
+            X_validation = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
+            y_validation = np.empty((0, 1))
             X_test = np.empty((0, datos_input.shape[1]))
-            y_train = np.empty((0, 1))
+            y_test = np.empty((0, 1))
             
             grouped = defaultdict(list)
             for s in metadata_output:
@@ -137,11 +140,26 @@ class DataReader(object):
             metadata_keys_train = metadata_keys[0:number_of_keys_train]
             
             number_of_keys_validation = round(metadata_keys_len * self.p_validation)
-            metadata_keys_validation = metadata_keys[number_of_keys_train:number_of_keys_validation]
+            metadata_keys_validation = metadata_keys[number_of_keys_train:(number_of_keys_train+number_of_keys_validation)]
             
             number_of_keys_test = round(metadata_keys_len * self.p_test)
-            metadata_keys_test = metadata_keys[(number_of_keys_train+number_of_keys_validation):number_of_keys_test]
+            metadata_keys_test = metadata_keys[(number_of_keys_train+number_of_keys_validation):(number_of_keys_train+number_of_keys_validation+number_of_keys_test)]
             
+            # Save training, validation and test participants in the config file
+            with open(config_path, "r") as f:
+                lines = f.readlines()
+
+            # Replace content from line 5 onward (i.e. index 4)
+            new_lines = lines[:5]  # Keep first 4 lines (up to line 4)
+            new_lines += [
+                "Training participants: " + ",".join(metadata_keys_train)+"\n",
+                "Validation participants: " + ",".join(metadata_keys_validation)+"\n",
+                "Testing participants: " + ",".join(metadata_keys_test)+"\n"
+            ]
+                            
+            with open(config_path, "w") as f:
+                f.writelines(new_lines)
+
             for i in range(datos_input.shape[0]):
                 participant_id_i = metadata_output[i]
                 if participant_id_i in metadata_keys_train and modelID == ML_Model.RANDOM_FOREST.value:
@@ -151,6 +169,14 @@ class DataReader(object):
                     label_i = etiquetas_output[i]
                     label_i = np.array([[label_i]])
                     y_train = np.vstack([y_train, label_i])
+
+                if participant_id_i in metadata_keys_validation and modelID == ML_Model.RANDOM_FOREST.value:
+                    fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
+                    X_validation = np.vstack([X_validation, fila_data])
+                    
+                    label_i = etiquetas_output[i]
+                    label_i = np.array([[label_i]])
+                    y_validation = np.vstack([y_validation, label_i])
                     
                 if participant_id_i in metadata_keys_test and modelID == ML_Model.RANDOM_FOREST.value:
                     fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
@@ -239,6 +265,8 @@ class DataReader(object):
         
         self.X_train = X_train
         self.y_train = y_train
+        self.X_validation = X_validation
+        self.y_validation = y_validation
         self.X_test = X_test
         self.y_test = y_test
         

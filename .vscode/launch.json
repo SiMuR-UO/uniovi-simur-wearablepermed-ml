@@ -11,19 +11,19 @@
           "program": "${file}",
           "args": [
             // STEP01: training
-            //"--case-id", "case_08",
-            //"--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",            
-            //"--ml-models","CAPTURE24",
-            //"--split-method", "Window",
-            //"--training-percent", "70",
-            //"--validation-percent", "20"
+            "--case-id", "case_10",
+            "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",            
+            "--ml-models","RandomForest",
+            "--split-method", "Participant",
+            "--training-percent", "70",
+            "--validation-percent", "20"
 
             // STEP02: testing
-            "--case-id", "case_08",
-            "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",
-            "--model-id", "CAPTURE24",
-            "--split-method", "Window",
-            "--training-percent", "70",
+            //"--case-id", "case_08",
+            //"--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",
+            //"--model-id", "CAPTURE24",
+            //"--split-method", "Window",
+            //"--training-percent", "70",
             //"--validation-percent", "20"
           ],
           "console": "integratedTerminal"
