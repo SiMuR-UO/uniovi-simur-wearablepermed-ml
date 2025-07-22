@@ -27,7 +27,7 @@ class SiMuRModel_ESANN(object):
         # - Hiperparámetros asociados a las opciones de entrenamiento de la CNN
         self.optimizador = params.get("optimizer", "adam")                # especifica el optimizador a utilizar durante el entrenamiento
         self.tamanho_minilote = params.get("miniBatchSize", 10)           # especifica el tamaño del mini-lote
-        self.tasa_aprendizaje = params.get("lr", 0.1)                     # especifica el learning-rate empleado durante el entrenamiento
+        self.tasa_aprendizaje = params.get("lr", 0.001)                     # especifica el learning-rate empleado durante el entrenamiento
         
         # - Hiperparámetros asociados a la arquitectura de la red CNN
         self.N_capas = params.get("N_capas", 2)                           # especifica el número de capas ocultas de la red
@@ -66,17 +66,17 @@ class SiMuRModel_ESANN(object):
     def create_model(self):
         # Aquí se define la red, SVC, árbol, etc.
         
-        self.numFeatures = 12   # especifica el número de características
-        self.numClasses = 18    # especifica el número de clases
+        # self.numFeatures = 18   # especifica el número de características
+        self.numClasses = 17    # especifica el número de clases
         # self.filterSize = 5     # especifica el tamaño del filtro
         # self.numFilters = 16    # especifica el número de filtros
         # self.miniBatchSize = 27 # especifica el tamaño del lote mini
         # self.max_epochs = 20    # especifica el número máximo de épocas
 
-        if (self.X_train).shape[1]==12:
-            dimension_de_entrada = (12, 250)
-        elif (self.X_train).shape[1]==6:
-            dimension_de_entrada = (6, 250)
+        # if (self.X_train).shape[1]==12:
+        #     dimension_de_entrada = (12, 250)
+        # elif (self.X_train).shape[1]==6:
+        dimension_de_entrada = (6, 250)
             
         model = models.Sequential([
             layers.InputLayer(input_shape=dimension_de_entrada),
@@ -231,17 +231,17 @@ class SiMuRModel_CAPTURE24(object):
     
     
     def create_model(self):
-        self.numFeatures = 6      # especifica el número de características
-        self.numClasses = 18      # especifica el número de clases
+        #self.numFeatures = 6      # especifica el número de características
+        self.numClasses = 17      # especifica el número de clases
         # self.filterSize = 5     # especifica el tamaño del filtro
         # self.numFilters = 16    # especifica el número de filtros
         # self.miniBatchSize = 27 # especifica el tamaño del lote mini
         # self.max_epochs = 20    # especifica el número máximo de épocas
         
-        if (self.X_train).shape[1]==12:
-            dimension_de_entrada = (12, 250)
-        elif (self.X_train).shape[1]==6:
-            dimension_de_entrada = (6, 250)
+        #if (self.X_train).shape[1]==12:
+        #    dimension_de_entrada = (12, 250)
+        #elif (self.X_train).shape[1]==6:
+        dimension_de_entrada = (6, 250)
         
         # Entrada
         inputs = layers.Input(shape=dimension_de_entrada)

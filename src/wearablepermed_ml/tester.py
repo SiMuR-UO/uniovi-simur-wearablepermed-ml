@@ -17,6 +17,10 @@ class ML_Model(Enum):
     CAPTURE24 = 'CAPTURE24'
     RANDOM_FOREST = 'RandomForest'
     XGBOOST = 'XGBoost'
+
+class Split_Method(Enum):
+    WINDOW = 'Window'
+    PARTICIPANT = 'Participant'
    
 def parse_args(args):
     """Parse command line parameters
@@ -49,13 +53,24 @@ def parse_args(args):
         dest="model_id",
         required=True,
         help="Choose the model id."
-    )     
+    )
+    parser.add_argument(
+        '-split-method',
+        '--split-method',
+        type=Split_Method,
+        choices=list(Split_Method),
+        default=Split_Method.WINDOW,        
+        required=True,
+        dest='split_method',
+        help="Split method"
+    )         
     parser.add_argument(
         '-training-percent',
         '--training-percent',
         dest='training_percent',
         type=int,
         default=70,
+        required=True,
         help="Training percent"
     )    
     parser.add_argument(
@@ -70,17 +85,17 @@ def parse_args(args):
         "-v",
         "--verbose",
         dest="loglevel",
-        help="set loglevel to INFO.",
+        help="set loglevel to DEBUG.",
         action="store_const",
-        const=logging.INFO,
+        const=logging.DEBUG,
     )
     parser.add_argument(
         "-vv",
         "--very-verbose",
         dest="loglevel",
-        help="set loglevel to DEBUG.",
+        help="set loglevel to INFO.",
         action="store_const",
-        const=logging.DEBUG,
+        const=logging.INFO,
     )    
     return parser.parse_args(args)
 

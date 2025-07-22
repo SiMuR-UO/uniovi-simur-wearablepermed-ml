@@ -97,8 +97,10 @@ def time_warp(X, sigma=0.2):
 class DataReader(object):
     def __init__(self, modelID, p_train, p_validation, file_path, label_encoder_path, add_sintetic_data=False, split_method=Split_Method.WINDOW):        
         self.p_train = p_train / 100
-        self.p_validation = p_validation / 100
-        self.p_test = 1 - (self.p_train + self.p_validation )
+
+        if (p_validation is not None):
+            self.p_validation = p_validation / 100
+            self.p_test = 1 - (self.p_train + self.p_validation )
         
         stack_de_datos_y_etiquetas_PMP_tot = np.load(file_path)
         datos_input = stack_de_datos_y_etiquetas_PMP_tot[WINDOW_CONCATENATED_DATA]

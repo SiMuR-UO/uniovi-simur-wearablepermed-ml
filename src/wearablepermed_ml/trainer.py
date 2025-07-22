@@ -5,8 +5,8 @@ import logging
 from enum import Enum
 
 import numpy as np
-from Data import DataReader
-from Models.model_generator import modelGenerator
+from data import DataReader
+from models.model_generator import modelGenerator
 from basic_functions.address import *
 from tensorflow import keras
 
@@ -104,13 +104,6 @@ def parse_args(args):
         dest="ml_models",        
         required=True,
         help=f"Available ML models: {[c.value for c in ML_Model]}."
-    )
-    parser.add_argument(
-        "-dataset-folder",
-        "--dataset-folder",
-        dest="dataset_folder",
-        required=True,
-        help="Choose the dataset root folder."
     )
     parser.add_argument(
         '-split-method',
