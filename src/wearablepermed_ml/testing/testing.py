@@ -1,6 +1,6 @@
 from enum import Enum
-from data import DataReader
-from models.model_generator import modelGenerator
+from Data import DataReader
+from Models.model_generator import modelGenerator
 from basic_functions.address import *
 import tensorflow as tf
 import numpy as np
@@ -18,7 +18,7 @@ class ML_Model(Enum):
     RANDOM_FOREST = 'RandomForest'
     XGBOOST = 'XGBoost'
     
-def tester(case_id_folder, model_id, training_percent):
+def tester(case_id_folder, model_id, training_percent, validation_percent):
     # Cargar el LabelEncoder
     # Ver las clases asociadas a cada número
     test_label_encoder_path = os.path.join(case_id_folder, "label_encoder.pkl")
@@ -26,11 +26,18 @@ def tester(case_id_folder, model_id, training_percent):
 
     print(label_encoder.classes_)
 
+    # class_names_total = ['CAMINAR CON LA COMPRA', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR USUAL SPEED',
+    # 'CAMINAR ZIGZAG', 'DE PIE BARRIENDO', 'DE PIE DOBLANDO TOALLAS',
+    # 'DE PIE MOVIENDO LIBROS', 'DE PIE USANDO PC', 'FASE REPOSO CON K5',
+    # 'INCREMENTAL CICLOERGOMETRO', 'SENTADO LEYENDO', 'SENTADO USANDO PC',
+    # 'SENTADO VIENDO LA TV', 'SIT TO STAND 30 s', 'SUBIR Y BAJAR ESCALERAS',
+    # 'TAPIZ RODANTE', 'TROTAR', 'YOGA']
+    
     class_names_total = ['CAMINAR CON LA COMPRA', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR USUAL SPEED',
     'CAMINAR ZIGZAG', 'DE PIE BARRIENDO', 'DE PIE DOBLANDO TOALLAS',
     'DE PIE MOVIENDO LIBROS', 'DE PIE USANDO PC', 'FASE REPOSO CON K5',
     'INCREMENTAL CICLOERGOMETRO', 'SENTADO LEYENDO', 'SENTADO USANDO PC',
-    'SENTADO VIENDO LA TV', 'SIT TO STAND 30 s', 'SUBIR Y BAJAR ESCALERAS',
+    'SENTADO VIENDO LA TV', 'SUBIR Y BAJAR ESCALERAS',
     'TAPIZ RODANTE', 'TROTAR', 'YOGA']
 
     print(len(class_names_total))
@@ -67,14 +74,14 @@ def tester(case_id_folder, model_id, training_percent):
         test_dataset_path = os.path.join(case_id_folder, "data_feature_all.npz")
 
         params = {
-            "n_estimators": 500
+            "n_estimators": 3000
         }
 
     elif (model_id == ML_Model.XGBOOST.value):
         raise Exception("Model training not implemented")
         
     # Testeamos el rendimiento del modelo de clasificación con los DATOS TOTALES
-    data = DataReader(modelID=model_id, p_train = training_percent, file_path=test_dataset_path, label_encoder_path=test_label_encoder_path)
+    data = DataReader(modelID=model_id, p_train = training_percent, p_validation=validation_percent, file_path=test_dataset_path, label_encoder_path=test_label_encoder_path)
 
     model = modelGenerator(modelID=model_id, data=data, params=params, debug=False)
 

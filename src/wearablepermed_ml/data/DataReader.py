@@ -115,19 +115,48 @@ class DataReader(object):
         y_encoded = label_encoder.fit_transform(etiquetas_output)
         
         # Split train and test datasets
-        if split_method == Split_Method.WINDOW:
+        if split_method.name == Split_Method.WINDOW.name:
             X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, train_size=self.p_train, random_state=42)
         else:
+            X_train = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
+            y_train = np.empty((0, 1))
+            X_test = np.empty((0, datos_input.shape[1]))
+            y_train = np.empty((0, 1))
+            
             grouped = defaultdict(list)
             for s in metadata_output:
                 grouped[s].append(s)
-                metadata_grouped = dict(grouped)
+            metadata_grouped = dict(grouped)
 
-                metadata_keys = list(metadata_grouped.keys())
-                metadata_keys_len = len(metadata_keys)
-        
-                metadata_keys_train = round(metadata_keys_len * self.p_train)
-                metadata_keys = [metadata_grouped[i] for i in list(range(metadata_keys_train))]
+            metadata_keys = list(metadata_grouped.keys())
+            metadata_keys_len = len(metadata_keys)
+            
+            number_of_keys_train = round(metadata_keys_len * self.p_train)
+            metadata_keys_train = metadata_keys[0:number_of_keys_train]
+            
+            number_of_keys_validation = round(metadata_keys_len * self.p_validation)
+            metadata_keys_validation = metadata_keys[number_of_keys_train:number_of_keys_validation]
+            
+            number_of_keys_test = round(metadata_keys_len * self.p_test)
+            metadata_keys_test = metadata_keys[(number_of_keys_train+number_of_keys_validation):number_of_keys_test]
+            
+            for i in range(datos_input.shape[0]):
+                participant_id_i = metadata_output[i]
+                if participant_id_i in metadata_keys_train and modelID == ML_Model.RANDOM_FOREST.value:
+                    fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
+                    X_train = np.vstack([X_train, fila_data])
+                    
+                    label_i = etiquetas_output[i]
+                    label_i = np.array([[label_i]])
+                    y_train = np.vstack([y_train, label_i])
+                    
+                if participant_id_i in metadata_keys_test and modelID == ML_Model.RANDOM_FOREST.value:
+                    fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
+                    X_test = np.vstack([X_test, fila_data])
+                    
+                    label_i = etiquetas_output[i]
+                    label_i = np.array([[label_i]])
+                    y_test = np.vstack([y_test, label_i])
 
         # --------------------------------------------------------------------------------------------------
         # Realizamos el aumento de datos en el conjunto de entrenamiento. En el conjunto de test mantenemos

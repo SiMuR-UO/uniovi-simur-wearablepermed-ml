@@ -59,6 +59,14 @@ def parse_args(args):
         help="Training percent"
     )    
     parser.add_argument(
+        '-validation-percent',
+        '--validation-percent',
+        dest='validation_percent',
+        type=int,
+        default=20,
+        help="Validation percent"
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         dest="loglevel",
@@ -105,7 +113,7 @@ def main(args):
     os.makedirs(case_id_folder, exist_ok=True)
 
     _logger.info("Tester starts here")
-    testing.tester(case_id_folder, args.model_id, args.training_percent)
+    testing.tester(case_id_folder, args.model_id, args.training_percent, args.validation_percent)
     _logger.info("Script ends here")
 
 def run():

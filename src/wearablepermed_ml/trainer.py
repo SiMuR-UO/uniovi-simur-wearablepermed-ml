@@ -5,8 +5,8 @@ import logging
 from enum import Enum
 
 import numpy as np
-from data import DataReader
-from models.model_generator import modelGenerator
+from Data import DataReader
+from Models.model_generator import modelGenerator
 from basic_functions.address import *
 from tensorflow import keras
 
