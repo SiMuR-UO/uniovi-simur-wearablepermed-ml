@@ -11,17 +11,17 @@
           "program": "${file}",
           "args": [
             // STEP01: training
-            //"--case-id", "case_11",
+            //"--case-id", "case_12",
             //"--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",            
-            //"--ml-models","CAPTURE24",
+            //"--ml-models","RandomForest",
             //"--split-method", "Participant",
             //"--training-percent", "70",
             //"--validation-percent", "20"
 
             // STEP02: testing
-            "--case-id", "case_11",
+            "--case-id", "case_12",
             "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",
-            "--model-id", "CAPTURE24",
+            "--model-id", "RandomForest",
             "--split-method", "Participant",
             "--training-percent", "70",
             "--validation-percent", "20"
