@@ -121,13 +121,6 @@ class DataReader(object):
         if split_method.name == Split_Method.WINDOW.name:
             X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, train_size=self.p_train, random_state=42)
         else:
-            X_train = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
-            y_train = np.empty((0, 1))
-            X_validation = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
-            y_validation = np.empty((0, 1))
-            X_test = np.empty((0, datos_input.shape[1]))
-            y_test = np.empty((0, 1))
-            
             grouped = defaultdict(list)
             for s in metadata_output:
                 grouped[s].append(s)
@@ -145,6 +138,20 @@ class DataReader(object):
             number_of_keys_test = round(metadata_keys_len * self.p_test)
             metadata_keys_test = metadata_keys[(number_of_keys_train+number_of_keys_validation):(number_of_keys_train+number_of_keys_validation+number_of_keys_test)]
             
+            if modelID == ML_Model.RANDOM_FOREST.value:
+                X_train = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
+                X_validation = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
+                X_test = np.empty((0, datos_input.shape[1]))
+            elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
+                X_train_list = []
+                X_validation_list = []
+                X_test_list = []
+                
+            y_train = np.empty((0, 1))
+            y_validation = np.empty((0, 1))
+            y_test = np.empty((0, 1))
+            
+
             # Save training, validation and test participants in the config file
             with open(config_path, "r") as f:
                 lines = f.readlines()
@@ -152,9 +159,9 @@ class DataReader(object):
             # Replace content from line 5 onward (i.e. index 4)
             new_lines = lines[:5]  # Keep first 4 lines (up to line 4)
             new_lines += [
-                "Training participants: " + ",".join(metadata_keys_train)+"\n",
-                "Validation participants: " + ",".join(metadata_keys_validation)+"\n",
-                "Testing participants: " + ",".join(metadata_keys_test)+"\n"
+                "\nTraining participants: " + ",".join(metadata_keys_train)+"\n\n",
+                "Validation participants: " + ",".join(metadata_keys_validation)+"\n\n",
+                "Testing participants: " + ",".join(metadata_keys_test)+"\n\n"
             ]
                             
             with open(config_path, "w") as f:
@@ -162,29 +169,51 @@ class DataReader(object):
 
             for i in range(datos_input.shape[0]):
                 participant_id_i = metadata_output[i]
-                if participant_id_i in metadata_keys_train and modelID == ML_Model.RANDOM_FOREST.value:
-                    fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
-                    X_train = np.vstack([X_train, fila_data])
+                if participant_id_i in metadata_keys_train:
+                    if modelID == ML_Model.RANDOM_FOREST.value:
+                        fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
+                        X_train = np.vstack([X_train, fila_data])
+                    elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
+                        window_data = datos_input[i, :, :]
+                        X_train_list.append(window_data)
                     
-                    label_i = etiquetas_output[i]
+                    label_i = y_encoded[i]
                     label_i = np.array([[label_i]])
                     y_train = np.vstack([y_train, label_i])
 
-                if participant_id_i in metadata_keys_validation and modelID == ML_Model.RANDOM_FOREST.value:
-                    fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
-                    X_validation = np.vstack([X_validation, fila_data])
+                if participant_id_i in metadata_keys_validation:
+                    if modelID == ML_Model.RANDOM_FOREST.value:
+                        fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
+                        X_validation = np.vstack([X_validation, fila_data])
+                    elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
+                        window_data = datos_input[i, :, :]
+                        X_validation_list.append(window_data)
                     
-                    label_i = etiquetas_output[i]
+                    label_i = y_encoded[i]
                     label_i = np.array([[label_i]])
                     y_validation = np.vstack([y_validation, label_i])
                     
-                if participant_id_i in metadata_keys_test and modelID == ML_Model.RANDOM_FOREST.value:
-                    fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
-                    X_test = np.vstack([X_test, fila_data])
+                if participant_id_i in metadata_keys_test:
+                    if modelID == ML_Model.RANDOM_FOREST.value:
+                        fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
+                        X_test = np.vstack([X_test, fila_data])
+                    elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
+                        window_data = datos_input[i, :, :]
+                        X_test_list.append(window_data)
                     
-                    label_i = etiquetas_output[i]
+                    label_i = y_encoded[i]
                     label_i = np.array([[label_i]])
                     y_test = np.vstack([y_test, label_i])
+            
+            try:      
+                if X_train_list:
+                    X_train = np.stack(X_train_list)
+                if X_validation_list:
+                    X_validation = np.stack(X_validation_list)
+                if X_test_list:
+                    X_test = np.stack(X_test_list)
+            except:
+                print("Training a non-convolutional model.")
 
         # --------------------------------------------------------------------------------------------------
         # Realizamos el aumento de datos en el conjunto de entrenamiento. En el conjunto de test mantenemos

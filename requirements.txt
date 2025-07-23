@@ -30,7 +30,9 @@ importlib_resources==6.5.2
 Jinja2==3.1.6
 joblib==1.5.1
 keras==3.10.0
+keras-tuner==1.4.7
 kiwisolver==1.4.8
+kt-legacy==1.0.5
 libclang==18.1.1
 linkify-it-py==2.0.3
 lxml==5.4.0
