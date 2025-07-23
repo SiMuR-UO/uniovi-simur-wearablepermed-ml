@@ -48,9 +48,11 @@ class SiMuRModel_ESANN(object):
         # El formato del objeto Data puede variar de aplicación en aplicación
         
         self.X_train = data.X_train
+        self.X_validation = data.X_validation        
         self.X_test  = data.X_test
         
         self.y_train = data.y_train
+        self.y_validation  = data.y_validation
         self.y_test  = data.y_test
 
         #############################################################################
@@ -107,12 +109,10 @@ class SiMuRModel_ESANN(object):
     
     def train(self):
         # Se lanza el entrenamiento de los modelos. El código para lanzar el entrenamiento depende mucho del modelo.  
-        history = self.model.fit(self.X_train, self.y_train,
+        history = self.model.fit(self.X_train, self.y_train, validation_data=(self.X_validation, self.y_validation),
                                  batch_size=self.tamanho_minilote,
                                  epochs=100,
                                  verbose=1,
-                                 validation_split = 0.3,  # porcentaje de los datos de train que se utilizarán como
-                                                          # dataset de validación en cada época
                                  callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)]
                                 )
         
@@ -201,9 +201,11 @@ class SiMuRModel_CAPTURE24(object):
         # El formato del objeto Data puede variar de aplicación en aplicación
         
         self.X_train = data.X_train
-        self.X_test  = data.X_test
-        
+        self.X_validation = data.X_validation        
+        self.X_test  = data.X_test        
+
         self.y_train = data.y_train
+        self.y_validation = data.y_validation
         self.y_test  = data.y_test
 
         #############################################################################
@@ -311,12 +313,10 @@ class SiMuRModel_CAPTURE24(object):
     
     def train(self):
         # Se lanza el entrenamiento de los modelos. El código para lanzar el entrenamiento depende mucho del modelo.  
-        history = self.model.fit(self.X_train, self.y_train,
+        history = self.model.fit(self.X_train, self.y_train, validation_data=(self.X_validation, self.y_validation),
                                  batch_size=self.tamanho_minilote,
                                  epochs=100,
                                  verbose=1,
-                                 validation_split = 0.3,  # porcentaje de los datos de train que se utilizarán como
-                                                             # dataset de validación en cada época
                                  callbacks = [keras.callbacks.EarlyStopping(monitor='loss', patience=5)]
                                  )
         

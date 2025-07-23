@@ -96,7 +96,7 @@ def time_warp(X, sigma=0.2):
     return X_new
 
 class DataReader(object):
-    def __init__(self, modelID, p_train, p_validation, file_path, label_encoder_path, config_path, add_sintetic_data=False, split_method=Split_Method.WINDOW):        
+    def __init__(self, modelID, p_train, p_validation, file_path, label_encoder_path, config_path=None, add_sintetic_data=False, split_method=Split_Method.WINDOW):        
         self.p_train = p_train / 100
 
         if (p_validation is not None):
@@ -152,20 +152,21 @@ class DataReader(object):
             y_test = np.empty((0, 1))
             
 
-            # Save training, validation and test participants in the config file
-            with open(config_path, "r") as f:
-                lines = f.readlines()
+            # Save training, validation and test participants in the config file only in training step
+            if (config_path is not None):
+                with open(config_path, "r") as f:
+                    lines = f.readlines()
 
-            # Replace content from line 5 onward (i.e. index 4)
-            new_lines = lines[:5]  # Keep first 4 lines (up to line 4)
-            new_lines += [
-                "\nTraining participants: " + ",".join(metadata_keys_train)+"\n\n",
-                "Validation participants: " + ",".join(metadata_keys_validation)+"\n\n",
-                "Testing participants: " + ",".join(metadata_keys_test)+"\n\n"
-            ]
-                            
-            with open(config_path, "w") as f:
-                f.writelines(new_lines)
+                # Replace content from line 5 onward (i.e. index 4)
+                new_lines = lines[:5]  # Keep first 4 lines (up to line 4)
+                new_lines += [
+                    "\nTraining participants: " + ",".join(metadata_keys_train)+"\n\n",
+                    "Validation participants: " + ",".join(metadata_keys_validation)+"\n\n",
+                    "Testing participants: " + ",".join(metadata_keys_test)+"\n\n"
+                ]
+                                
+                with open(config_path, "w") as f:
+                    f.writelines(new_lines)
 
             for i in range(datos_input.shape[0]):
                 participant_id_i = metadata_output[i]

@@ -128,7 +128,7 @@ def main(args):
     os.makedirs(case_id_folder, exist_ok=True)
 
     _logger.info("Tester starts here")
-    testing.tester(case_id_folder, args.model_id, args.training_percent, args.validation_percent)
+    testing.tester(case_id_folder, args.model_id, args.training_percent, args.validation_percent, args.split_method)
     _logger.info("Script ends here")
 
 def run():
