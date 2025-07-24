@@ -69,7 +69,8 @@ class SiMuRModel_ESANN(object):
         # Aquí se define la red, SVC, árbol, etc.
         
         # self.numFeatures = 18   # especifica el número de características
-        self.numClasses = 17    # especifica el número de clases
+        # self.numClasses = 17    # especifica el número de clases
+        self.numClasses = int((max(self.y_train)+1)[0])    # especifica el número de clases
         # self.filterSize = 5     # especifica el tamaño del filtro
         # self.numFilters = 16    # especifica el número de filtros
         # self.miniBatchSize = 27 # especifica el tamaño del lote mini
@@ -234,7 +235,8 @@ class SiMuRModel_CAPTURE24(object):
     
     def create_model(self):
         #self.numFeatures = 6      # especifica el número de características
-        self.numClasses = 17      # especifica el número de clases
+        # self.numClasses = 17      # especifica el número de clases
+        self.numClasses = int((max(self.y_train)+1)[0])    # especifica el número de clases
         # self.filterSize = 5     # especifica el tamaño del filtro
         # self.numFilters = 16    # especifica el número de filtros
         # self.miniBatchSize = 27 # especifica el tamaño del lote mini
@@ -291,7 +293,7 @@ class SiMuRModel_CAPTURE24(object):
         x = layers.Dense(1024, activation='relu')(x)
 
         # Capa de salida
-        outputs = layers.Dense(18, activation='softmax')(x)   # 18 clases de actividad física inicialmente
+        outputs = layers.Dense(self.numClasses, activation='softmax')(x)   # 18 clases de actividad física inicialmente
 
         # Definimos el modelo
         model_CNN_CAPTURE24 = models.Model(inputs, outputs)

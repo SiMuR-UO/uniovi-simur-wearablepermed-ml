@@ -96,7 +96,7 @@ def time_warp(X, sigma=0.2):
     return X_new
 
 class DataReader(object):
-    def __init__(self, modelID, p_train, p_validation, file_path, label_encoder_path, config_path=None, add_sintetic_data=False, split_method=Split_Method.WINDOW):        
+    def __init__(self, modelID, create_superclasses, p_train, p_validation, file_path, label_encoder_path, config_path=None, add_sintetic_data=False, split_method=Split_Method.WINDOW):        
         self.p_train = p_train / 100
 
         if (p_validation is not None):
@@ -110,6 +110,22 @@ class DataReader(object):
 
         # X data
         X = datos_input
+        
+        # Creation of Activity Superclasses
+        if create_superclasses == True:
+            etiquetas_superclase_1 = ['CAMINAR CON LA COMPRA', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR USUAL SPEED', 'CAMINAR ZIGZAG']
+            etiquetas_superclase_2 = ['DE PIE BARRIENDO', 'DE PIE DOBLANDO TOALLAS', 'DE PIE MOVIENDO LIBROS', 'DE PIE USANDO PC']
+            etiquetas_superclase_3 = ['FASE REPOSO CON K5', 'SENTADO LEYENDO', 'SENTADO USANDO PC', 'SENTADO VIENDO LA TV']
+            etiquetas_superclase_4 = ['TAPIZ RODANTE', 'TROTAR']
+            for i in range(len(etiquetas_output)):
+                if etiquetas_output[i] in etiquetas_superclase_1:
+                    etiquetas_output[i] = 'CAMINAR'
+                elif etiquetas_output[i] in etiquetas_superclase_2:
+                    etiquetas_output[i] = 'DE PIE + ACTIVIDAD'
+                elif etiquetas_output[i] in etiquetas_superclase_3:
+                    etiquetas_output[i] = 'SENTADO/REPOSO'
+                elif etiquetas_output[i] in etiquetas_superclase_4:
+                    etiquetas_output[i] = 'CORRER'
         
         # y data
         # Codificación numérica de las etiquetas para cada muestra de datos

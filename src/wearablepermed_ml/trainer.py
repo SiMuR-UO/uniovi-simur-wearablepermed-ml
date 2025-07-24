@@ -109,6 +109,13 @@ def parse_args(args):
         help=f"Available ML models: {[c.value for c in ML_Model]}."
     )
     parser.add_argument(
+        "-create-superclasses",
+        "--create-superclasses",
+        dest="create_superclasses",
+        action='store_true',
+        help="Create activity superclasses (true/false)."
+    )
+    parser.add_argument(
         '-split-method',
         '--split-method',
         type=Split_Method,
@@ -245,7 +252,7 @@ def main(args):
             config_file = os.path.join(case_id_folder, CONFIG_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(modelID=modelID, p_train = args.training_percent, p_validation = args.validation_percent, 
+            data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent, 
                                   file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file,
                                   split_method=args.split_method)
             params_ESANN = {"N_capas": 2}
@@ -298,7 +305,7 @@ def main(args):
             config_file = os.path.join(case_id_folder, CONFIG_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(modelID=modelID, p_train = args.training_percent, p_validation = args.validation_percent, 
+            data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent, 
                                   file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file,
                                   split_method=args.split_method)
             params_CAPTURE24 = {"N_capas": 6}
@@ -317,7 +324,7 @@ def main(args):
             config_file = os.path.join(case_id_folder, CONFIG_FILE)
 
             # IMUs muslo + muñeca
-            data_tot = DataReader(modelID=modelID, p_train = args.training_percent, p_validation = args.validation_percent,
+            data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent,
                                    file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file,
                                    split_method=args.split_method)
             params_RandomForest = {"n_estimators": 3000}

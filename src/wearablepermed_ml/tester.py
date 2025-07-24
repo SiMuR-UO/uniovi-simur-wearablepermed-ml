@@ -55,6 +55,13 @@ def parse_args(args):
         help="Choose the model id."
     )
     parser.add_argument(
+        "-create-superclasses",
+        "--create-superclasses",
+        dest="create_superclasses",
+        action='store_true',
+        help="Create activity superclasses (true/false)."
+    )
+    parser.add_argument(
         '-split-method',
         '--split-method',
         type=Split_Method,
@@ -128,7 +135,7 @@ def main(args):
     os.makedirs(case_id_folder, exist_ok=True)
 
     _logger.info("Tester starts here")
-    testing.tester(case_id_folder, args.model_id, args.training_percent, args.validation_percent, args.split_method)
+    testing.tester(case_id_folder, args.model_id, args.create_superclasses, args.training_percent, args.validation_percent, args.split_method)
     _logger.info("Script ends here")
 
 def run():
