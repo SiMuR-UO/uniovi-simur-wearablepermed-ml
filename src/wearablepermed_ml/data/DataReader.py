@@ -12,12 +12,16 @@
 
 from enum import Enum
 import os
+import random
 import numpy as np
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import joblib
 from collections import defaultdict
+
+_DEF_WINDOWS_REBALANCED_MEAN = 30 # for all tasks (training + test)
+_DEF_WINDOWS_REBALANCED_THRESHOLD = 30  # for all windows (training + test)
 
 class ML_Model(Enum):
     ESANN = 'ESANN'
@@ -32,6 +36,9 @@ class Split_Method(Enum):
 WINDOW_CONCATENATED_DATA = "arr_0"
 WINDOW_ALL_LABELS = "arr_1"
 WINDOW_ALL_METADATA = "arr_2"
+
+_DEF_WINDOWS_BALANCED_MEAN = 200 # for all tasks (training + test)
+_DEF_WINDOWS_BALANCED_THRESHOLD = 200  # for all windows (training + test)
 
 # Jittering
 def jitter(X, sigma=0.5):
@@ -95,6 +102,67 @@ def time_warp(X, sigma=0.2):
 
     return X_new
 
+def config_participants(config_path, metadata_keys_train, metadata_keys_validation, metadata_keys_test):
+    with open(config_path, "r") as f:
+        lines = f.readlines()
+
+    # Replace content from line 5 onward (i.e. index 4)
+    new_lines = lines[:5]  # Keep first 4 lines (up to line 4)
+    new_lines += [
+        "\nTraining participants: " + ",".join(metadata_keys_train)+"\n\n",
+        "Validation participants: " + ",".join(metadata_keys_validation)+"\n\n",
+        "Testing participants: " + ",".join(metadata_keys_test)+"\n\n"
+    ]
+                
+    with open(config_path, "w") as f:
+        f.writelines(new_lines)
+
+def aggregate_superclasses(etiquetas_output):
+    etiquetas_superclase_1 = ['CAMINAR CON LA COMPRA', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR USUAL SPEED', 'CAMINAR ZIGZAG']
+    etiquetas_superclase_2 = ['DE PIE BARRIENDO', 'DE PIE DOBLANDO TOALLAS', 'DE PIE MOVIENDO LIBROS', 'DE PIE USANDO PC', 'YOGA']
+    etiquetas_superclase_3 = ['FASE REPOSO CON K5', 'SENTADO LEYENDO', 'SENTADO USANDO PC', 'SENTADO VIENDO LA TV']
+    etiquetas_superclase_4 = ['TAPIZ RODANTE', 'TROTAR']
+
+    for i in range(len(etiquetas_output)):
+        if etiquetas_output[i] in etiquetas_superclase_1:
+            etiquetas_output[i] = 'CAMINAR'
+        elif etiquetas_output[i] in etiquetas_superclase_2:
+            etiquetas_output[i] = 'DE PIE + ACTIVIDAD'
+        elif etiquetas_output[i] in etiquetas_superclase_3:
+            etiquetas_output[i] = 'SENTADO/REPOSO'
+        elif etiquetas_output[i] in etiquetas_superclase_4:
+            etiquetas_output[i] = 'CORRER'
+    
+    return etiquetas_output
+
+def rebalanced(data, labels, metadata):
+    # flat three datasets in one dictionary
+    grouped = defaultdict(lambda: defaultdict(list))
+
+    for xi, yi, mi in zip(data, labels, metadata):
+        grouped[mi][yi].append(xi)
+
+    participants = {mi: dict(classes) for mi, classes in grouped.items()}
+
+    # rebalanced
+    for participant_key in participants:
+        for activity_key in participants[str(participant_key)]:            
+            windows_balanced = random.sample(participants[str(participant_key)][str(activity_key)], _DEF_WINDOWS_REBALANCED_MEAN)
+            participants[str(participant_key)][str(activity_key)] = windows_balanced
+
+    # return to three datasets from dictionary
+    data_reconstructed = []
+    labels_reconstructed = []
+    metadata_reconstructed = []
+
+    for metadata, class_participant in participants.items():
+        for label, windows in class_participant.items():
+            for window in windows:
+                data_reconstructed.append(window)
+                labels_reconstructed.append(label)
+                metadata_reconstructed.append(metadata)
+
+    return data_reconstructed, labels_reconstructed, metadata_reconstructed        
 class DataReader(object):
     def __init__(self, modelID, create_superclasses, p_train, p_validation, file_path, label_encoder_path, config_path=None, add_sintetic_data=False, split_method=Split_Method.WINDOW):        
         self.p_train = p_train / 100
@@ -113,19 +181,9 @@ class DataReader(object):
         
         # Creation of Activity Superclasses
         if create_superclasses == True:
-            etiquetas_superclase_1 = ['CAMINAR CON LA COMPRA', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR USUAL SPEED', 'CAMINAR ZIGZAG']
-            etiquetas_superclase_2 = ['DE PIE BARRIENDO', 'DE PIE DOBLANDO TOALLAS', 'DE PIE MOVIENDO LIBROS', 'DE PIE USANDO PC']
-            etiquetas_superclase_3 = ['FASE REPOSO CON K5', 'SENTADO LEYENDO', 'SENTADO USANDO PC', 'SENTADO VIENDO LA TV']
-            etiquetas_superclase_4 = ['TAPIZ RODANTE', 'TROTAR']
-            for i in range(len(etiquetas_output)):
-                if etiquetas_output[i] in etiquetas_superclase_1:
-                    etiquetas_output[i] = 'CAMINAR'
-                elif etiquetas_output[i] in etiquetas_superclase_2:
-                    etiquetas_output[i] = 'DE PIE + ACTIVIDAD'
-                elif etiquetas_output[i] in etiquetas_superclase_3:
-                    etiquetas_output[i] = 'SENTADO/REPOSO'
-                elif etiquetas_output[i] in etiquetas_superclase_4:
-                    etiquetas_output[i] = 'CORRER'
+            etiquetas_output = aggregate_superclasses(etiquetas_output)
+
+            datos_input, etiquetas_output, metadata_output = rebalanced(datos_input, etiquetas_output, metadata_output)
         
         # y data
         # Codificación numérica de las etiquetas para cada muestra de datos
@@ -170,20 +228,9 @@ class DataReader(object):
 
             # Save training, validation and test participants in the config file only in training step
             if (config_path is not None):
-                with open(config_path, "r") as f:
-                    lines = f.readlines()
+                config_participants(config_path, metadata_keys_train, metadata_keys_validation, metadata_keys_test)
 
-                # Replace content from line 5 onward (i.e. index 4)
-                new_lines = lines[:5]  # Keep first 4 lines (up to line 4)
-                new_lines += [
-                    "\nTraining participants: " + ",".join(metadata_keys_train)+"\n\n",
-                    "Validation participants: " + ",".join(metadata_keys_validation)+"\n\n",
-                    "Testing participants: " + ",".join(metadata_keys_test)+"\n\n"
-                ]
-                                
-                with open(config_path, "w") as f:
-                    f.writelines(new_lines)
-
+            # Split train, validation and test datasets by participant
             for i in range(datos_input.shape[0]):
                 participant_id_i = metadata_output[i]
                 if participant_id_i in metadata_keys_train:
