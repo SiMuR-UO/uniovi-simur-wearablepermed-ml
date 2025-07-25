@@ -20,8 +20,7 @@ from sklearn.preprocessing import LabelEncoder
 import joblib
 from collections import defaultdict
 
-_DEF_WINDOWS_REBALANCED_MEAN = 30 # for all tasks (training + test)
-_DEF_WINDOWS_REBALANCED_THRESHOLD = 30  # for all windows (training + test)
+_DEF_WINDOWS_REBALANCED_MEAN = 50 # for all tasks (training + test)
 
 class ML_Model(Enum):
     ESANN = 'ESANN'
@@ -36,9 +35,6 @@ class Split_Method(Enum):
 WINDOW_CONCATENATED_DATA = "arr_0"
 WINDOW_ALL_LABELS = "arr_1"
 WINDOW_ALL_METADATA = "arr_2"
-
-_DEF_WINDOWS_BALANCED_MEAN = 200 # for all tasks (training + test)
-_DEF_WINDOWS_BALANCED_THRESHOLD = 200  # for all windows (training + test)
 
 # Jittering
 def jitter(X, sigma=0.5):
@@ -146,9 +142,12 @@ def rebalanced(data, labels, metadata):
 
     # rebalanced
     for participant_key in participants:
-        for activity_key in participants[str(participant_key)]:            
-            windows_balanced = random.sample(participants[str(participant_key)][str(activity_key)], _DEF_WINDOWS_REBALANCED_MEAN)
-            participants[str(participant_key)][str(activity_key)] = windows_balanced
+        for activity_key in participants[str(participant_key)]:
+            try:            
+                random_windows = random.sample(participants[str(participant_key)][str(activity_key)], _DEF_WINDOWS_REBALANCED_MEAN)
+                participants[str(participant_key)][str(activity_key)] = random_windows
+            except:
+                print("This activity can't be balanced (in a downsampling way)")
 
     # return to three datasets from dictionary
     data_reconstructed = []
@@ -161,8 +160,12 @@ def rebalanced(data, labels, metadata):
                 data_reconstructed.append(window)
                 labels_reconstructed.append(label)
                 metadata_reconstructed.append(metadata)
+                
+    data_reconstructed_stack=np.stack(data_reconstructed, axis=0)
+    
+    return data_reconstructed_stack, labels_reconstructed, metadata_reconstructed   
 
-    return data_reconstructed, labels_reconstructed, metadata_reconstructed        
+    
 class DataReader(object):
     def __init__(self, modelID, create_superclasses, p_train, p_validation, file_path, label_encoder_path, config_path=None, add_sintetic_data=False, split_method=Split_Method.WINDOW):        
         self.p_train = p_train / 100

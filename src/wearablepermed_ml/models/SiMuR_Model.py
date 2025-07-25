@@ -88,7 +88,7 @@ class SiMuRModel_ESANN(object):
             layers.Conv1D(2*self.numero_filtros, self.tamanho_filtro, padding="causal", activation=self.activacion_capas_ocultas),
             layers.LayerNormalization(),
             layers.GlobalAveragePooling1D(),
-            layers.Dropout(0.3),
+            layers.Dropout(0.1),
             layers.Dense(self.numClasses, activation='softmax')
         ])
 
