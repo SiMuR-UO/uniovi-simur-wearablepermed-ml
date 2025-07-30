@@ -248,40 +248,40 @@ def main(args):
             if os.path.isfile(Ruta_model_ESANN_data_tot):
                 model_ESANN_data_tot.load(modelID, case_id_folder)
             else:
-                callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
-                model_ESANN_data_tot.train()
-                model_ESANN_data_tot.store(modelID, case_id_folder)
+                # callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
+                # model_ESANN_data_tot.train()
+                # model_ESANN_data_tot.store(modelID, case_id_folder)
             
-            # Construir el modelo con la selección de hiperparámetros
-            # add_optimized_hyperparameters(keras_tuner.HyperParameters(), model_ESANN_data_tot, data_tot)
-            
-            # # Crear el obj de búsqueda keras_tuner.Hyperband(ASHA algorithm)
-            # tuner = keras_tuner.Hyperband(
-            #     hypermodel           = add_optimized_hyperparameters,                         # modelo construido con los hiperparámetros seleccionados en cada iteración 
-            #     objective            = "val_accuracy",                                        # función objetivo a optimizar
-            #     max_epochs           = 150,                                                   # número máximo de experimentos a realizar durante la búsqueda de hiperparámetros
-            #     executions_per_trial = 3,                                                     # número de modelos que se construyen y entrenan en cada experimento
-            #     overwrite            = True,                                                  # sobreescribir los resultados
-            #     directory            = case_id_folder,                                        # directorio en el que se guardarán los resultados de la búsqueda de hiperparámetros óptimos
-            #     project_name         = "Busqueda_Hiperparametros_SiMuRModel_ESANN_NET",       # nombre del proyecto asociado al ajuste de hiperparámetros
-            # )
-             
-            # # Realizar la búsqueda de hiperparámetros óptimos para el modelo:
-            # tuner.search(data_tot.X_train, data_tot.y_train,
-            #      epochs=40,
-            #      validation_data=(data_tot.X_validation, data_tot.y_validation), 
-            #      # Implementación de early-stopping para evitar el sobreentrenamiento (over-fitting) del modelo
-            #      callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)])
-            
-            # tuner.search_space_summary()
-            
-            # # Recuperación de los 5 mejores modelos en base a los hiperparámetros calculados:
-            # models_after_hyperparameter_search = tuner.get_best_models(num_models=5)
-    
-            # # El mejor modelo según keras será:
-            # best_model = models_after_hyperparameter_search[0]
-            # best_model.summary()                                # Obtenemos un resumen del mejor modelo
-            # tuner.results_summary()                             # Imprimimos los resultados del mejor modelo
+                # Construir el modelo con la selección de hiperparámetros
+                add_optimized_hyperparameters(keras_tuner.HyperParameters(), model_ESANN_data_tot, data_tot)
+                
+                # Crear el obj de búsqueda keras_tuner.Hyperband(ASHA algorithm)
+                tuner = keras_tuner.Hyperband(
+                    hypermodel           = lambda hp: add_optimized_hyperparameters(hp=hp, model=model_ESANN_data_tot, data=data_tot),                         # modelo construido con los hiperparámetros seleccionados en cada iteración 
+                    objective            = "val_accuracy",                                        # función objetivo a optimizar
+                    max_epochs           = 150,                                                   # número máximo de experimentos a realizar durante la búsqueda de hiperparámetros
+                    executions_per_trial = 3,                                                     # número de modelos que se construyen y entrenan en cada experimento
+                    overwrite            = True,                                                  # sobreescribir los resultados
+                    directory            = case_id_folder,                                        # directorio en el que se guardarán los resultados de la búsqueda de hiperparámetros óptimos
+                    project_name         = "Busqueda_Hiperparametros_SiMuRModel_ESANN_NET",       # nombre del proyecto asociado al ajuste de hiperparámetros
+                )
+                
+                # Realizar la búsqueda de hiperparámetros óptimos para el modelo:
+                tuner.search(data_tot.X_train, data_tot.y_train,
+                     epochs=40,
+                     validation_data=(data_tot.X_validation, data_tot.y_validation), 
+                     # Implementación de early-stopping para evitar el sobreentrenamiento (over-fitting) del modelo
+                     callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)])
+                
+                tuner.search_space_summary()
+                
+                # Recuperación de los 5 mejores modelos en base a los hiperparámetros calculados:
+                models_after_hyperparameter_search = tuner.get_best_models(num_models=5)
+        
+                # El mejor modelo según keras será:
+                best_model = models_after_hyperparameter_search[0]
+                best_model.summary()                                # Obtenemos un resumen del mejor modelo
+                tuner.results_summary()                             # Imprimimos los resultados del mejor modelo
     
     
         elif modelID == ML_Model.CAPTURE24.value:
