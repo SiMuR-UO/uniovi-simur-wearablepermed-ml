@@ -14,8 +14,6 @@ from enum import Enum
 import os
 import random
 import numpy as np
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 import joblib
 from collections import defaultdict
@@ -27,10 +25,6 @@ class ML_Model(Enum):
     CAPTURE24 = 'CAPTURE24'
     RANDOM_FOREST = 'RandomForest'
     XGBOOST = 'XGBoost'
-
-class Split_Method(Enum):
-    WINDOW = 'Window'
-    PARTICIPANT = 'Participant'
 
 WINDOW_CONCATENATED_DATA = "arr_0"
 WINDOW_ALL_LABELS = "arr_1"
@@ -167,13 +161,15 @@ def rebalanced(data, labels, metadata):
 
     
 class DataReader(object):
-    def __init__(self, modelID, create_superclasses, p_train, p_validation, file_path, label_encoder_path, config_path=None, add_sintetic_data=False, split_method=Split_Method.WINDOW):        
+    def __init__(self, modelID, create_superclasses, p_train, p_validation, file_path, label_encoder_path, config_path=None, add_sintetic_data=False):        
         self.p_train = p_train / 100
 
         if (p_validation is not None):
             self.p_validation = p_validation / 100
             self.p_test = 1 - (self.p_train + self.p_validation )
-        
+        else:
+            self.p_test = 1 - ( self.p_train )
+
         stack_de_datos_y_etiquetas_PMP_tot = np.load(file_path)
         datos_input = stack_de_datos_y_etiquetas_PMP_tot[WINDOW_CONCATENATED_DATA]
         etiquetas_output = stack_de_datos_y_etiquetas_PMP_tot[WINDOW_ALL_LABELS]
@@ -195,92 +191,89 @@ class DataReader(object):
         y_encoded = label_encoder.fit_transform(etiquetas_output)
         
         # Split train and test datasets
-        if split_method.name == Split_Method.WINDOW.name:
-            X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, train_size=self.p_train, random_state=42)
-        else:
-            grouped = defaultdict(list)
-            for s in metadata_output:
-                grouped[s].append(s)
-            metadata_grouped = dict(grouped)
+        grouped = defaultdict(list)
+        for s in metadata_output:
+            grouped[s].append(s)
+        metadata_grouped = dict(grouped)
 
-            metadata_keys = list(metadata_grouped.keys())
-            metadata_keys_len = len(metadata_keys)
+        metadata_keys = list(metadata_grouped.keys())
+        metadata_keys_len = len(metadata_keys)
+        
+        number_of_keys_train = round(metadata_keys_len * self.p_train)
+        metadata_keys_train = metadata_keys[0:number_of_keys_train]
+        
+        number_of_keys_validation = round(metadata_keys_len * self.p_validation)
+        metadata_keys_validation = metadata_keys[number_of_keys_train:(number_of_keys_train+number_of_keys_validation)]
+        
+        number_of_keys_test = round(metadata_keys_len * self.p_test)
+        metadata_keys_test = metadata_keys[(number_of_keys_train+number_of_keys_validation):(number_of_keys_train+number_of_keys_validation+number_of_keys_test)]
+        
+        if modelID == ML_Model.RANDOM_FOREST.value:
+            X_train = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
+            X_validation = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
+            X_test = np.empty((0, datos_input.shape[1]))
+        elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
+            X_train_list = []
+            X_validation_list = []
+            X_test_list = []
             
-            number_of_keys_train = round(metadata_keys_len * self.p_train)
-            metadata_keys_train = metadata_keys[0:number_of_keys_train]
-            
-            number_of_keys_validation = round(metadata_keys_len * self.p_validation)
-            metadata_keys_validation = metadata_keys[number_of_keys_train:(number_of_keys_train+number_of_keys_validation)]
-            
-            number_of_keys_test = round(metadata_keys_len * self.p_test)
-            metadata_keys_test = metadata_keys[(number_of_keys_train+number_of_keys_validation):(number_of_keys_train+number_of_keys_validation+number_of_keys_test)]
-            
-            if modelID == ML_Model.RANDOM_FOREST.value:
-                X_train = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
-                X_validation = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
-                X_test = np.empty((0, datos_input.shape[1]))
-            elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
-                X_train_list = []
-                X_validation_list = []
-                X_test_list = []
+        y_train = np.empty((0, 1))
+        y_validation = np.empty((0, 1))
+        y_test = np.empty((0, 1))
+        
+
+        # Save training, validation and test participants in the config file only in training step
+        if (config_path is not None):
+            config_participants(config_path, metadata_keys_train, metadata_keys_validation, metadata_keys_test)
+
+        # Split train, validation and test datasets by participant
+        for i in range(datos_input.shape[0]):
+            participant_id_i = metadata_output[i]
+            if participant_id_i in metadata_keys_train:
+                if modelID == ML_Model.RANDOM_FOREST.value:
+                    fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
+                    X_train = np.vstack([X_train, fila_data])
+                elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
+                    window_data = datos_input[i, :, :]
+                    X_train_list.append(window_data)
                 
-            y_train = np.empty((0, 1))
-            y_validation = np.empty((0, 1))
-            y_test = np.empty((0, 1))
-            
+                label_i = y_encoded[i]
+                label_i = np.array([[label_i]])
+                y_train = np.vstack([y_train, label_i])
 
-            # Save training, validation and test participants in the config file only in training step
-            if (config_path is not None):
-                config_participants(config_path, metadata_keys_train, metadata_keys_validation, metadata_keys_test)
-
-            # Split train, validation and test datasets by participant
-            for i in range(datos_input.shape[0]):
-                participant_id_i = metadata_output[i]
-                if participant_id_i in metadata_keys_train:
-                    if modelID == ML_Model.RANDOM_FOREST.value:
-                        fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
-                        X_train = np.vstack([X_train, fila_data])
-                    elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
-                        window_data = datos_input[i, :, :]
-                        X_train_list.append(window_data)
-                    
-                    label_i = y_encoded[i]
-                    label_i = np.array([[label_i]])
-                    y_train = np.vstack([y_train, label_i])
-
-                if participant_id_i in metadata_keys_validation:
-                    if modelID == ML_Model.RANDOM_FOREST.value:
-                        fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
-                        X_validation = np.vstack([X_validation, fila_data])
-                    elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
-                        window_data = datos_input[i, :, :]
-                        X_validation_list.append(window_data)
-                    
-                    label_i = y_encoded[i]
-                    label_i = np.array([[label_i]])
-                    y_validation = np.vstack([y_validation, label_i])
-                    
-                if participant_id_i in metadata_keys_test:
-                    if modelID == ML_Model.RANDOM_FOREST.value:
-                        fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
-                        X_test = np.vstack([X_test, fila_data])
-                    elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
-                        window_data = datos_input[i, :, :]
-                        X_test_list.append(window_data)
-                    
-                    label_i = y_encoded[i]
-                    label_i = np.array([[label_i]])
-                    y_test = np.vstack([y_test, label_i])
-            
-            try:      
-                if X_train_list:
-                    X_train = np.stack(X_train_list)
-                if X_validation_list:
-                    X_validation = np.stack(X_validation_list)
-                if X_test_list:
-                    X_test = np.stack(X_test_list)
-            except:
-                print("Training a non-convolutional model.")
+            if participant_id_i in metadata_keys_validation:
+                if modelID == ML_Model.RANDOM_FOREST.value:
+                    fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
+                    X_validation = np.vstack([X_validation, fila_data])
+                elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
+                    window_data = datos_input[i, :, :]
+                    X_validation_list.append(window_data)
+                
+                label_i = y_encoded[i]
+                label_i = np.array([[label_i]])
+                y_validation = np.vstack([y_validation, label_i])
+                
+            if participant_id_i in metadata_keys_test:
+                if modelID == ML_Model.RANDOM_FOREST.value:
+                    fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
+                    X_test = np.vstack([X_test, fila_data])
+                elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
+                    window_data = datos_input[i, :, :]
+                    X_test_list.append(window_data)
+                
+                label_i = y_encoded[i]
+                label_i = np.array([[label_i]])
+                y_test = np.vstack([y_test, label_i])
+        
+        try:      
+            if X_train_list:
+                X_train = np.stack(X_train_list)
+            if X_validation_list:
+                X_validation = np.stack(X_validation_list)
+            if X_test_list:
+                X_test = np.stack(X_test_list)
+        except:
+            print("Training a non-convolutional model.")
 
         # --------------------------------------------------------------------------------------------------
         # Realizamos el aumento de datos en el conjunto de entrenamiento. En el conjunto de test mantenemos

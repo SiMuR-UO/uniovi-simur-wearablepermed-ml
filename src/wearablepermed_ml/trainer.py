@@ -43,10 +43,6 @@ class ML_Model(Enum):
     RANDOM_FOREST = 'RandomForest'
     XGBOOST = 'XGBoost'
 
-class Split_Method(Enum):
-    WINDOW = 'Window'
-    PARTICIPANT = 'Participant'
-
 class ML_Sensor(Enum):
     PI = 'thigh'
     M = 'wrist'
@@ -114,17 +110,7 @@ def parse_args(args):
         dest="create_superclasses",
         action='store_true',
         help="Create activity superclasses (true/false)."
-    )
-    parser.add_argument(
-        '-split-method',
-        '--split-method',
-        type=Split_Method,
-        choices=list(Split_Method),
-        default=Split_Method.WINDOW,        
-        required=True,
-        dest='split_method',
-        help="Split method"
-    )            
+    )          
     parser.add_argument(
         '-training-percent',
         '--training-percent',
@@ -253,8 +239,7 @@ def main(args):
 
             # IMUs muslo + muñeca
             data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent, 
-                                  file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file,
-                                  split_method=args.split_method)
+                                  file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
             params_ESANN = {"N_capas": 2}
             model_ESANN_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_ESANN, debug=False)
             Ruta_model_ESANN_data_tot = get_model_path(modelID)
@@ -306,8 +291,7 @@ def main(args):
 
             # IMUs muslo + muñeca
             data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent, 
-                                  file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file,
-                                  split_method=args.split_method)
+                                  file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
             params_CAPTURE24 = {"N_capas": 6}
             model_CAPTURE24_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_CAPTURE24, debug=False)
             Ruta_model_CAPTURE24_data_tot = get_model_path(modelID)
@@ -325,8 +309,7 @@ def main(args):
 
             # IMUs muslo + muñeca
             data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent,
-                                   file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file,
-                                   split_method=args.split_method)
+                                   file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
             params_RandomForest = {"n_estimators": 3000}
             model_RandomForest_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_RandomForest, debug=False)
             Ruta_model_RandomForest_data_tot = get_model_path(modelID)

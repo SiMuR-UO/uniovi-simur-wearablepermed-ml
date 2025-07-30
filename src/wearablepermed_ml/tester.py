@@ -17,10 +17,6 @@ class ML_Model(Enum):
     CAPTURE24 = 'CAPTURE24'
     RANDOM_FOREST = 'RandomForest'
     XGBOOST = 'XGBoost'
-
-class Split_Method(Enum):
-    WINDOW = 'Window'
-    PARTICIPANT = 'Participant'
    
 def parse_args(args):
     """Parse command line parameters
@@ -60,17 +56,7 @@ def parse_args(args):
         dest="create_superclasses",
         action='store_true',
         help="Create activity superclasses (true/false)."
-    )
-    parser.add_argument(
-        '-split-method',
-        '--split-method',
-        type=Split_Method,
-        choices=list(Split_Method),
-        default=Split_Method.WINDOW,        
-        required=True,
-        dest='split_method',
-        help="Split method"
-    )         
+    )    
     parser.add_argument(
         '-training-percent',
         '--training-percent',
@@ -135,7 +121,7 @@ def main(args):
     os.makedirs(case_id_folder, exist_ok=True)
 
     _logger.info("Tester starts here")
-    testing.tester(case_id_folder, args.model_id, args.create_superclasses, args.training_percent, args.validation_percent, args.split_method)
+    testing.tester(case_id_folder, args.model_id, args.create_superclasses, args.training_percent, args.validation_percent)
     _logger.info("Script ends here")
 
 def run():

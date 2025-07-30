@@ -18,7 +18,7 @@ class ML_Model(Enum):
     RANDOM_FOREST = 'RandomForest'
     XGBOOST = 'XGBoost'
     
-def tester(case_id_folder, model_id, create_superclasses, training_percent, validation_percent, split_method):
+def tester(case_id_folder, model_id, create_superclasses, training_percent, validation_percent):
     # Cargar el LabelEncoder
     # Ver las clases asociadas a cada número
     test_label_encoder_path = os.path.join(case_id_folder, "label_encoder.pkl")
@@ -83,7 +83,7 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
         raise Exception("Model training not implemented")
         
     # Testeamos el rendimiento del modelo de clasificación con los DATOS TOTALES
-    data = DataReader(modelID=model_id, create_superclasses=create_superclasses, p_train = training_percent, p_validation=validation_percent, file_path=test_dataset_path, label_encoder_path=test_label_encoder_path,split_method=split_method)
+    data = DataReader(modelID=model_id, create_superclasses=create_superclasses, p_train = training_percent, p_validation=validation_percent, file_path=test_dataset_path, label_encoder_path=test_label_encoder_path)
 
     model = modelGenerator(modelID=model_id, data=data, params=params, debug=False)
 
