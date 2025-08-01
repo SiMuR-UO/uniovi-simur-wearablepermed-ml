@@ -27,7 +27,7 @@ class SiMuRModel_ESANN(object):
         # - Hiperparámetros asociados a las opciones de entrenamiento de la CNN
         self.optimizador = params.get("optimizer", "adam")                # especifica el optimizador a utilizar durante el entrenamiento
         self.tamanho_minilote = params.get("miniBatchSize", 10)           # especifica el tamaño del mini-lote
-        self.tasa_aprendizaje = params.get("lr", 0.001)                     # especifica el learning-rate empleado durante el entrenamiento
+        self.tasa_aprendizaje = params.get("lr", 0.01)                     # especifica el learning-rate empleado durante el entrenamiento
         
         # - Hiperparámetros asociados a la arquitectura de la red CNN
         self.N_capas = params.get("N_capas", 2)                           # especifica el número de capas ocultas de la red
@@ -88,7 +88,7 @@ class SiMuRModel_ESANN(object):
             layers.Conv1D(2*self.numero_filtros, self.tamanho_filtro, padding="causal", activation=self.activacion_capas_ocultas),
             layers.LayerNormalization(),
             layers.GlobalAveragePooling1D(),
-            layers.Dropout(0.1),
+            layers.Dropout(0.2),
             layers.Dense(self.numClasses, activation='softmax')
         ])
 

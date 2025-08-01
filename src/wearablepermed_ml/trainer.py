@@ -13,6 +13,7 @@ from tensorflow import keras
 import tensorflow as tf
 
 import keras_tuner 
+import json
 
 # Configuration du GPU
 gpus = tf.config.list_physical_devices('GPU')
@@ -182,33 +183,21 @@ def feature_model_selected(models):
 # ------------------------------------------------------------------------
 # if searching optimal hyperparameter:
 # Obtener modelo base para la optimización de los hiperparámetros:
-def add_optimized_hyperparameters(hp, model, data):
-    hiperparametros_busqueda ={ # número de capas ocultas de la red
-                    "N_capas": hp.Int("N_capas", min_value=2, max_value=7),
-                        
-                    # optimizador a utilizar durante el entrenamiento
-                    "optimizador": hp.Choice("optimizer", ["adam", "rmsprop", "SGD"]),
-                        
-                    # función de activación asociada a las neuronas de las capas ocultas
-                    "funcion_activacion": hp.Choice("activation", ["relu", "tanh", "sigmoid"]),
-                        
-                    # tamaño del mini-lote de entrenamiento
-                    "tamanho_minilote": hp.Int("miniBatchSize", min_value=10, max_value=30, step=7),
-                        
-                    # número de filtros utilizados en las capas ocultas de la red
-                    "numero_filtros": hp.Int("numFilters", min_value=12, max_value=30, step=4),
-                        
-                    # tamaño de los filtros de las capas ocultas
-                    "tamanho_filtro": hp.Int("filterSize", min_value=3, max_value=15, step=2),
-                        
-                    # learning-rate empleado durante el entrenamiento
-                    "tasa_aprendizaje": hp.Float("lr", min_value=1e-4, max_value=1e-1, sampling="log")
+def add_optimized_hyperparameters_CNN(hp, model, data):
+    hiperparametros_busqueda ={ 
+                    "N_capas":            hp.Int("N_capas", min_value=2, max_value=7),                     # número de capas ocultas de la red
+                    "optimizador":        hp.Choice("optimizer", ["adam", "rmsprop", "SGD"]),              # optimizador a utilizar durante el entrenamiento
+                    "funcion_activacion": hp.Choice("activation", ["relu", "tanh", "sigmoid"]),            # función de activación asociada a las neuronas de las capas ocultas
+                    "tamanho_minilote":   hp.Int("miniBatchSize", min_value=10, max_value=30, step=7),     # tamaño del mini-lote de entrenamiento
+                    "numero_filtros":     hp.Int("numFilters", min_value=12, max_value=30, step=4),        # número de filtros utilizados en las capas ocultas de la red
+                    "tamanho_filtro":     hp.Int("filterSize", min_value=3, max_value=15, step=2),         # tamaño de los filtros de las capas ocultas
+                    "tasa_aprendizaje":   hp.Float("lr", min_value=1e-4, max_value=1e-1, sampling="log")   # learning-rate empleado durante el entrenamiento
                     }
-    
-    class_simur_model = model.get_model_Obj()           # Obtenemos la clase SiMuRModel a partir de model_data_tot
+    # Construir el modelo con la selección de hiperparámetros
+    class_simur_model = model.get_model_Obj()                      # Obtenemos la clase SiMuRModel a partir de model_data_tot
     modelObj = class_simur_model(data, hiperparametros_busqueda)   # Instanciamos la clase class_simur_model
 
-    return modelObj.model                                              # Devuelve el objeto de la clase class_simur_model
+    return modelObj.model                                          # Devuelve el objeto de la clase class_simur_model
     
 def main(args):
     """Wrapper allowing :func:`fib` to be called with string arguments in a CLI fashion
@@ -231,59 +220,58 @@ def main(args):
 
     for ml_model in args.ml_models[0]:        
         modelID = ml_model.value
-
         if modelID == ML_Model.ESANN.value:
             dataset_file = os.path.join(case_id_folder, CONVOLUTIONAL_DATASET_FILE)
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
             config_file = os.path.join(case_id_folder, CONFIG_FILE)
-
-            # IMUs muslo + muñeca
             data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent, 
                                   file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
             params_ESANN = {"N_capas": 2}
             model_ESANN_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_ESANN, debug=False)
-            Ruta_model_ESANN_data_tot = get_model_path(modelID)
-            # Si ya existe el modelo, se carga el fichero .h5. En caso contrario, se entrenan y salvan los modelos.
-            # 3 CNNs ESANN
-            if os.path.isfile(Ruta_model_ESANN_data_tot):
+            Ruta_model_ESANN_data_tot = get_model_path(modelID, args)
+            if os.path.isfile(Ruta_model_ESANN_data_tot):      # Si ya existe el modelo, se carga el fichero .h5. En caso contrario, se entrenan y salvan los modelos.
                 model_ESANN_data_tot.load(modelID, case_id_folder)
             else:
-                # callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
-                # model_ESANN_data_tot.train()
-                # model_ESANN_data_tot.store(modelID, case_id_folder)
-            
-                # Construir el modelo con la selección de hiperparámetros
-                add_optimized_hyperparameters(keras_tuner.HyperParameters(), model_ESANN_data_tot, data_tot)
+                hp_json_path = os.path.join(case_id_folder, "best_hyperparameters.json")
+                if os.path.isfile(hp_json_path):
+                    with open(hp_json_path, "r") as f:
+                        best_hp_values = json.load(f)   
+                    hp = keras_tuner.HyperParameters()
+                    for param, value in best_hp_values.items():
+                        hp.values[param] = value 
+                    params_ESANN = hp.values
+                    model_ESANN_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_ESANN, debug=False)
+                    model_ESANN_data_tot.train()
+                    model_ESANN_data_tot.store(modelID, case_id_folder)
+                else:
+                    tuner = keras_tuner.Hyperband(  # Crear el obj de búsqueda keras_tuner.Hyperband(ASHA algorithm)
+                        hypermodel           = lambda hp: add_optimized_hyperparameters_CNN(hp=hp, model=model_ESANN_data_tot, data=data_tot),                         # modelo construido con los hiperparámetros seleccionados en cada iteración 
+                        objective            = "val_accuracy",                                        # función objetivo a optimizar
+                        max_epochs           = 100,                                                   # número máximo de épocas en cada trial a realizar durante la búsqueda de hiperparámetros
+                        executions_per_trial = 3,                                                     # número de modelos que se construyen y entrenan en cada experimento
+                        overwrite            = True,                                                  # sobreescribir los resultados
+                        directory            = case_id_folder,                                        # directorio en el que se guardarán los resultados de la búsqueda de hiperparámetros óptimos
+                        project_name         = "Busqueda_Hiperparametros_SiMuRModel_ESANN_NET",       # nombre del proyecto asociado al ajuste de hiperparámetros
+                    ) 
+                    tuner.search(data_tot.X_train, data_tot.y_train,                                  # Realizar la búsqueda de hiperparámetros óptimos para el modelo:
+                        epochs=5,
+                        validation_data=(data_tot.X_validation, data_tot.y_validation),       
+                        callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)]) # Implementación de early-stopping para evitar el sobreentrenamiento (over-fitting) del modelo
+                    tuner.search_space_summary()
+                    best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
+                    filtered_values = {   # Filtra solo los hiperparámetros que no empiecen por 'tuner/'
+                        k: v for k, v in best_hps.values.items() if not k.startswith("tuner/")
+                    }
+                    with open(hp_json_path, "w") as f:                                        # Guardar los hiperparámetros limpios en el archivo JSON
+                        json.dump(filtered_values, f, indent=4)
+                    models_after_hyperparameter_search = tuner.get_best_models(num_models=1)  # Recuperación del mejor modelo en base a los hiperparámetros calculados:
+                    best_model = models_after_hyperparameter_search[0]                        # El mejor modelo según keras será:
+                    best_model.summary()                                                      # Obtenemos un resumen del mejor modelo
+                    model_ESANN_data_tot.model = best_model                                   # Asignar el mejor modelo al objeto model_ESANN_data_tot
+                    model_ESANN_data_tot.store(modelID, case_id_folder)                    
+                    loss, accuracy = best_model.evaluate(data_tot.X_validation, data_tot.y_validation, verbose=1)  # Evaluar el mejor modelo en los datos de validación o test
+                    print(f"Validation accuracy: {accuracy:.4f}")
                 
-                # Crear el obj de búsqueda keras_tuner.Hyperband(ASHA algorithm)
-                tuner = keras_tuner.Hyperband(
-                    hypermodel           = lambda hp: add_optimized_hyperparameters(hp=hp, model=model_ESANN_data_tot, data=data_tot),                         # modelo construido con los hiperparámetros seleccionados en cada iteración 
-                    objective            = "val_accuracy",                                        # función objetivo a optimizar
-                    max_epochs           = 150,                                                   # número máximo de experimentos a realizar durante la búsqueda de hiperparámetros
-                    executions_per_trial = 3,                                                     # número de modelos que se construyen y entrenan en cada experimento
-                    overwrite            = True,                                                  # sobreescribir los resultados
-                    directory            = case_id_folder,                                        # directorio en el que se guardarán los resultados de la búsqueda de hiperparámetros óptimos
-                    project_name         = "Busqueda_Hiperparametros_SiMuRModel_ESANN_NET",       # nombre del proyecto asociado al ajuste de hiperparámetros
-                )
-                
-                # Realizar la búsqueda de hiperparámetros óptimos para el modelo:
-                tuner.search(data_tot.X_train, data_tot.y_train,
-                     epochs=40,
-                     validation_data=(data_tot.X_validation, data_tot.y_validation), 
-                     # Implementación de early-stopping para evitar el sobreentrenamiento (over-fitting) del modelo
-                     callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)])
-                
-                tuner.search_space_summary()
-                
-                # Recuperación de los 5 mejores modelos en base a los hiperparámetros calculados:
-                models_after_hyperparameter_search = tuner.get_best_models(num_models=5)
-        
-                # El mejor modelo según keras será:
-                best_model = models_after_hyperparameter_search[0]
-                best_model.summary()                                # Obtenemos un resumen del mejor modelo
-                tuner.results_summary()                             # Imprimimos los resultados del mejor modelo
-    
-    
         elif modelID == ML_Model.CAPTURE24.value:
             dataset_file = os.path.join(case_id_folder, CONVOLUTIONAL_DATASET_FILE)
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
