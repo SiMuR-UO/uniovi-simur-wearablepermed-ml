@@ -247,8 +247,8 @@ def main(args):
                     tuner = keras_tuner.Hyperband(  # Crear el obj de búsqueda keras_tuner.Hyperband(ASHA algorithm)
                         hypermodel           = lambda hp: add_optimized_hyperparameters_CNN(hp=hp, model=model_ESANN_data_tot, data=data_tot),                         # modelo construido con los hiperparámetros seleccionados en cada iteración 
                         objective            = "val_accuracy",                                        # función objetivo a optimizar
-                        max_epochs           = 100,                                                   # número máximo de épocas en cada trial a realizar durante la búsqueda de hiperparámetros
-                        executions_per_trial = 3,                                                     # número de modelos que se construyen y entrenan en cada experimento
+                        max_epochs           = 30,                                                   # número máximo de épocas en cada trial a realizar durante la búsqueda de hiperparámetros
+                        executions_per_trial = 2,                                                     # número de modelos que se construyen y entrenan en cada experimento
                         overwrite            = True,                                                  # sobreescribir los resultados
                         directory            = case_id_folder,                                        # directorio en el que se guardarán los resultados de la búsqueda de hiperparámetros óptimos
                         project_name         = "Busqueda_Hiperparametros_SiMuRModel_ESANN_NET",       # nombre del proyecto asociado al ajuste de hiperparámetros
@@ -256,7 +256,8 @@ def main(args):
                     tuner.search(data_tot.X_train, data_tot.y_train,                                  # Realizar la búsqueda de hiperparámetros óptimos para el modelo:
                         epochs=5,
                         validation_data=(data_tot.X_validation, data_tot.y_validation),       
-                        callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)]) # Implementación de early-stopping para evitar el sobreentrenamiento (over-fitting) del modelo
+                        # callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)]  # Implementación de early-stopping para evitar el sobreentrenamiento (over-fitting) del modelo
+                        ) 
                     tuner.search_space_summary()
                     best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
                     filtered_values = {   # Filtra solo los hiperparámetros que no empiecen por 'tuner/'
