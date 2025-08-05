@@ -12,8 +12,19 @@ from tensorflow import keras
 
 import tensorflow as tf
 
-import keras_tuner 
+# import keras_tuner 
 import json
+
+from ray import tune
+from ray.tune.schedulers import ASHAScheduler
+from ray.tune import TuneConfig
+from ray.air import RunConfig, CheckpointConfig
+from ray.air.config import FailureConfig
+from ray.air import session
+
+from models import SiMuRModel_ESANN, SiMuRModel_CAPTURE24
+from sklearn.metrics import accuracy_score
+
 
 # Configuration du GPU
 gpus = tf.config.list_physical_devices('GPU')
@@ -126,7 +137,7 @@ def parse_args(args):
         '--validation-percent',
         dest='validation_percent',
         type=int,
-        default=20,
+        default=0,
         help="Validation percent"
     )    
     parser.add_argument(
@@ -182,22 +193,25 @@ def feature_model_selected(models):
 
 # ------------------------------------------------------------------------
 # if searching optimal hyperparameter:
-# Obtener modelo base para la optimización de los hiperparámetros:
-def add_optimized_hyperparameters_CNN(hp, model, data):
-    hiperparametros_busqueda ={ 
-                    "N_capas":            hp.Int("N_capas", min_value=2, max_value=7),                     # número de capas ocultas de la red
-                    "optimizador":        hp.Choice("optimizer", ["adam", "rmsprop", "SGD"]),              # optimizador a utilizar durante el entrenamiento
-                    "funcion_activacion": hp.Choice("activation", ["relu", "tanh", "sigmoid"]),            # función de activación asociada a las neuronas de las capas ocultas
-                    "tamanho_minilote":   hp.Int("miniBatchSize", min_value=10, max_value=30, step=7),     # tamaño del mini-lote de entrenamiento
-                    "numero_filtros":     hp.Int("numFilters", min_value=12, max_value=30, step=4),        # número de filtros utilizados en las capas ocultas de la red
-                    "tamanho_filtro":     hp.Int("filterSize", min_value=3, max_value=15, step=2),         # tamaño de los filtros de las capas ocultas
-                    "tasa_aprendizaje":   hp.Float("lr", min_value=1e-4, max_value=1e-1, sampling="log")   # learning-rate empleado durante el entrenamiento
-                    }
-    # Construir el modelo con la selección de hiperparámetros
-    class_simur_model = model.get_model_Obj()                      # Obtenemos la clase SiMuRModel a partir de model_data_tot
-    modelObj = class_simur_model(data, hiperparametros_busqueda)   # Instanciamos la clase class_simur_model
-
-    return modelObj.model                                          # Devuelve el objeto de la clase class_simur_model
+def train_cnn_ray_tune(config, model_class, data):
+    params = {
+        "N_capas": config["N_capas"],
+        "optimizador": config["optimizador"],
+        "funcion_activacion": config["funcion_activacion"],
+        "tamanho_minilote": config["tamanho_minilote"],
+        "numero_filtros": config["numero_filtros"],
+        "tamanho_filtro": config["tamanho_filtro"],
+        "tasa_aprendizaje": config["tasa_aprendizaje"],
+        "epochs": config["epochs"]
+    }
+    model = model_class(data, params)
+    model.train(config["epochs"])
+    y_pred = model.predict(data.X_validation)
+    # Si devuelve probabilidades, convierte a clases
+    if y_pred.ndim > 1 and y_pred.shape[1] > 1:
+        y_pred = y_pred.argmax(axis=1)
+    val_acc = accuracy_score(data.y_validation, y_pred)
+    session.report({"val_accuracy": float(val_acc)})
     
 def main(args):
     """Wrapper allowing :func:`fib` to be called with string arguments in a CLI fashion
@@ -220,17 +234,221 @@ def main(args):
 
     for ml_model in args.ml_models[0]:        
         modelID = ml_model.value
+        
+        # **********
+        # Modelo A *
+        # **********
         if modelID == ML_Model.ESANN.value:
             dataset_file = os.path.join(case_id_folder, CONVOLUTIONAL_DATASET_FILE)
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
             config_file = os.path.join(case_id_folder, CONFIG_FILE)
+            
             data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent, 
                                   file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
-            params_ESANN = {"N_capas": 2}
-            model_ESANN_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_ESANN, debug=False)
-            Ruta_model_ESANN_data_tot = get_model_path(modelID, args)
-            if os.path.isfile(Ruta_model_ESANN_data_tot):      # Si ya existe el modelo, se carga el fichero .h5. En caso contrario, se entrenan y salvan los modelos.
-                model_ESANN_data_tot.load(modelID, case_id_folder)
+            
+            # Se entrenan y salvan los modelos (fichero .h5).
+            # Ruta al archivo de hiperparámetros guardados
+            hp_json_path = os.path.join(case_id_folder, "mejores_hiperparametros_ESANN.json")
+            # Verifica que el archivo existe
+            if os.path.isfile(hp_json_path):
+                # Cargar hiperparámetros desde el archivo JSON
+                with open(hp_json_path, "r") as f:
+                    best_hp_values = json.load(f)  # Diccionario: {param: valor}
+                # Construir modelo usando modelGenerator y los hiperparámetros
+                model_ESANN_data_tot = modelGenerator(
+                    modelID=modelID,
+                    data=data_tot,
+                    params=best_hp_values,  # Pasamos directamente el diccionario
+                    debug=False
+                )
+                # Entrenar el modelo con todos los datos
+                model_ESANN_data_tot.train(best_hp_values['epochs'])
+                # Guardar los pesos del modelo en formato .weights.h5
+                model_ESANN_data_tot.store(modelID, case_id_folder)
+            else:
+                print(f"Se lanza la búsqueda de hiperparámetros óptimos del modelo")
+                # -----------------------------------------------------------------------------------------------
+                # Búsqueda de hiperparámetros óptimos del modelo, implementando el algoritmo ASHA según Ray Tune.
+                # -----------------------------------------------------------------------------------------------
+                # Espacio de búsqueda
+                search_space = {
+                    "N_capas": tune.randint(2, 8),                                   # Número de capas entre 2 y 7 (el límite superior es exclusivo)
+                    "optimizador": tune.choice(["adam", "rmsprop", "SGD"]),          # Algoritmo de optimización a usar
+                    "funcion_activacion": tune.choice(["relu", "tanh", "sigmoid"]),  # Función de activación en las capas
+                    "tamanho_minilote": tune.choice([10, 17, 24, 31]),               # Tamaño del minibatch (batch size)
+                    "numero_filtros": tune.choice([12, 16, 20, 24, 28, 30]),         # Cantidad de filtros para capas convolucionales
+                    "tamanho_filtro": tune.choice([3, 5, 7, 9, 11, 13, 15]),         # Tamaño del kernel (filtro) en capas convolucionales
+                    "tasa_aprendizaje": tune.loguniform(1e-4, 1e-1),                 # Tasa de aprendizaje entre 0.0001 y 0.1 (escala logarítmica)
+                    "epochs": tune.randint(5, 51)                                    # Número de épocas de entrenamiento entre 5 y 50
+                }
+
+                # Configuración del scheduler
+                scheduler = ASHAScheduler(
+                    metric="val_accuracy",        # Métrica a optimizar: precisión en el conjunto de validación
+                    mode="max",                   # Se busca maximizar la métrica especificada
+                    max_t=10,                     # Número máximo de iteraciones (por ejemplo, épocas) por prueba
+                    grace_period=1,               # Número mínimo de iteraciones antes de detener una prueba prematuramente
+                    reduction_factor=2            # Factor por el cual se reduce el número de pruebas en cada ronda de selección
+                )
+
+                # Envolver función con parámetros adicionales
+                wrapped_train_fn = tune.with_parameters(
+                    train_cnn_ray_tune,                # Función de entrenamiento base que se usará en la búsqueda
+                    model_class=SiMuRModel_ESANN,      # Clase del modelo a usar
+                    data=data_tot                      # Conjunto de datos completo que se pasará a cada ejecución de entrenamiento
+                )
+
+                # Crear el tuner
+                tuner = tune.Tuner(
+                    wrapped_train_fn,                                                      # Función de entrenamiento envuelta con parámetros fijos
+                    param_space=search_space,                                              # Espacio de búsqueda de hiperparámetros definido antes
+                    tune_config=TuneConfig(
+                        scheduler=scheduler,                                               # Scheduler para manejar la parada temprana (ASHAScheduler)
+                        num_samples=20,                                                    # Número de configuraciones (experimentos) a probar
+                        trial_name_creator=lambda trial: f"trial_{trial.trial_id[:5]}",    # Nombre personalizado para cada prueba
+                        trial_dirname_creator=lambda trial: f"dir_{trial.trial_id[:5]}"    # Carpeta personalizada para cada prueba
+                    ),
+                    run_config=RunConfig(
+                        name="ESANN_hyperparameters_tuning",                               # Nombre general del experimento
+                        storage_path=case_id_folder,                                       # Ruta donde se guardan los resultados y checkpoints
+                        checkpoint_config=CheckpointConfig(num_to_keep=1),                 # Guardar solo el último checkpoint por prueba
+                        failure_config=FailureConfig(fail_fast=False, max_failures=10),    # Permite hasta 10 fallos antes de parar
+                        verbose=2,                                                         # Nivel de detalle en los logs (más detallado)
+                        log_to_file=False                                                  # No guardar logs en archivos (evita problemas con rutas largas)
+                    )
+                )
+
+                # Ejecutar búsqueda de hiperparámetros
+                results = tuner.fit()
+
+                # Obtener mejor resultado
+                best_result = results.get_best_result(metric="val_accuracy", mode="max")
+                print("Mejores hiperparámetros:", best_result.config)
+                
+                # Obtener la configuración óptima como diccionario
+                mejores_hiperparametros = best_result.config
+
+                # Guardar en un archivo JSON
+                with open(os.path.join(case_id_folder,"mejores_hiperparametros_ESANN.json"), "w") as f:
+                    json.dump(mejores_hiperparametros, f, indent=4)
+                
+                # Obtener los resultados como DataFrame
+                df = results.get_dataframe()
+                df.to_json(os.path.join(case_id_folder, "resultados_busqueda_ray_tune_ESANN.json"), orient="records", lines=True)
+
+        # **********
+        # Modelo B *
+        # **********
+        elif modelID == ML_Model.CAPTURE24.value:
+            dataset_file = os.path.join(case_id_folder, CONVOLUTIONAL_DATASET_FILE)
+            label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
+            config_file = os.path.join(case_id_folder, CONFIG_FILE)
+            
+            data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent, 
+                                  file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
+            
+            # Se entrenan y salvan los modelos (fichero .h5).
+            # Ruta al archivo de hiperparámetros guardados
+            hp_json_path = os.path.join(case_id_folder, "mejores_hiperparametros_CAPTURE24.json")
+            # Verifica que el archivo existe
+            if os.path.isfile(hp_json_path):
+                # Cargar hiperparámetros desde el archivo JSON
+                with open(hp_json_path, "r") as f:
+                    best_hp_values = json.load(f)  # Diccionario: {param: valor}
+                # Construir modelo usando modelGenerator y los hiperparámetros
+                model_CAPTURE24_data_tot = modelGenerator(
+                    modelID=modelID,
+                    data=data_tot,
+                    params=best_hp_values,  # Pasamos directamente el diccionario
+                    debug=False
+                )
+                # Entrenar el modelo con todos los datos
+                model_CAPTURE24_data_tot.train(best_hp_values['epochs'])
+                # Guardar los pesos del modelo en formato .weights.h5
+                model_CAPTURE24_data_tot.store(modelID, case_id_folder)
+            else:
+                print(f"Se lanza la búsqueda de hiperparámetros óptimos del modelo")
+                # -----------------------------------------------------------------------------------------------
+                # Búsqueda de hiperparámetros óptimos del modelo, implementando el algoritmo ASHA según Ray Tune.
+                # -----------------------------------------------------------------------------------------------
+                # Espacio de búsqueda
+                search_space = {
+                    "N_capas": tune.randint(2, 8),                                   # Número de capas entre 2 y 7 (el límite superior es exclusivo)
+                    "optimizador": tune.choice(["adam", "rmsprop", "SGD"]),          # Algoritmo de optimización a usar
+                    "funcion_activacion": tune.choice(["relu", "tanh", "sigmoid"]),  # Función de activación en las capas
+                    "tamanho_minilote": tune.choice([10, 17, 24, 31]),               # Tamaño del minibatch (batch size)
+                    "numero_filtros": tune.choice([44, 48, 52, 56, 60, 64]),         # Cantidad de filtros para capas convolucionales
+                    "tamanho_filtro": tune.choice([3, 5, 7, 9, 11, 13, 15]),         # Tamaño del kernel (filtro) en capas convolucionales
+                    "tasa_aprendizaje": tune.loguniform(1e-4, 1e-1),                 # Tasa de aprendizaje entre 0.0001 y 0.1 (escala logarítmica)
+                    "epochs": tune.randint(5, 51)                                    # Número de épocas de entrenamiento entre 5 y 50
+                }
+
+                # Configuración del scheduler
+                scheduler = ASHAScheduler(
+                    metric="val_accuracy",        # Métrica a optimizar: precisión en el conjunto de validación
+                    mode="max",                   # Se busca maximizar la métrica especificada
+                    max_t=10,                     # Número máximo de iteraciones (por ejemplo, épocas) por prueba
+                    grace_period=1,               # Número mínimo de iteraciones antes de detener una prueba prematuramente
+                    reduction_factor=2            # Factor por el cual se reduce el número de pruebas en cada ronda de selección
+                )
+
+                # Envolver función con parámetros adicionales
+                wrapped_train_fn = tune.with_parameters(
+                    train_cnn_ray_tune,                # Función de entrenamiento base que se usará en la búsqueda
+                    model_class=SiMuRModel_CAPTURE24,  # Clase del modelo a usar
+                    data=data_tot                      # Conjunto de datos completo que se pasará a cada ejecución de entrenamiento
+                )
+
+                # Crear el tuner
+                tuner = tune.Tuner(
+                    wrapped_train_fn,                                                      # Función de entrenamiento envuelta con parámetros fijos
+                    param_space=search_space,                                              # Espacio de búsqueda de hiperparámetros definido antes
+                    tune_config=TuneConfig(
+                        scheduler=scheduler,                                               # Scheduler para manejar la parada temprana (ASHAScheduler)
+                        num_samples=20,                                                    # Número de configuraciones (experimentos) a probar
+                        trial_name_creator=lambda trial: f"trial_{trial.trial_id[:5]}",    # Nombre personalizado para cada prueba
+                        trial_dirname_creator=lambda trial: f"dir_{trial.trial_id[:5]}"    # Carpeta personalizada para cada prueba
+                    ),
+                    run_config=RunConfig(
+                        name="CAPTURE24_hyperparameters_tuning",                           # Nombre general del experimento
+                        storage_path=case_id_folder,                                       # Ruta donde se guardan los resultados y checkpoints
+                        checkpoint_config=CheckpointConfig(num_to_keep=1),                 # Guardar solo el último checkpoint por prueba
+                        failure_config=FailureConfig(fail_fast=False, max_failures=10),    # Permite hasta 10 fallos antes de parar
+                        verbose=2,                                                         # Nivel de detalle en los logs (más detallado)
+                        log_to_file=False                                                  # No guardar logs en archivos (evita problemas con rutas largas)
+                    )
+                )
+
+                # Ejecutar búsqueda de hiperparámetros
+                results = tuner.fit()
+
+                # Obtener mejor resultado
+                best_result = results.get_best_result(metric="val_accuracy", mode="max")
+                print("Mejores hiperparámetros:", best_result.config)
+                
+                # Obtener la configuración óptima como diccionario
+                mejores_hiperparametros = best_result.config
+
+                # Guardar en un archivo JSON
+                with open(os.path.join(case_id_folder,"mejores_hiperparametros_CAPTURE24.json"), "w") as f:
+                    json.dump(mejores_hiperparametros, f, indent=4)
+                
+                # Obtener los resultados como DataFrame
+                df = results.get_dataframe()
+                df.to_json(os.path.join(case_id_folder, "resultados_busqueda_ray_tune_CAPTURE24.json"), orient="records", lines=True)
+                
+         
+        elif modelID == ML_Model.RANDOM_FOREST.value:
+            dataset_file = os.path.join(case_id_folder, FEATURE_DATASET_FILE)
+            label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
+            config_file = os.path.join(case_id_folder, CONFIG_FILE)
+            data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent,
+                                   file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
+            params_RandomForest = {"n_estimators": 3000}
+            model_RandomForest_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_RandomForest, debug=False)
+            Ruta_model_RandomForest_data_tot = get_model_path(modelID, args)
+            if os.path.isfile(Ruta_model_RandomForest_data_tot):
+                model_RandomForest_data_tot.load(modelID, case_id_folder)
             else:
                 hp_json_path = os.path.join(case_id_folder, "best_hyperparameters.json")
                 if os.path.isfile(hp_json_path):
@@ -239,74 +457,39 @@ def main(args):
                     hp = keras_tuner.HyperParameters()
                     for param, value in best_hp_values.items():
                         hp.values[param] = value 
-                    params_ESANN = hp.values
-                    model_ESANN_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_ESANN, debug=False)
-                    model_ESANN_data_tot.train()
-                    model_ESANN_data_tot.store(modelID, case_id_folder)
+                    params_RandomForest = hp.values
+                    model_RandomForest_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_RandomForest, debug=False)
+                    model_RandomForest_data_tot.train()
+                    model_RandomForest_data_tot.store(modelID, case_id_folder)
                 else:
                     tuner = keras_tuner.Hyperband(  # Crear el obj de búsqueda keras_tuner.Hyperband(ASHA algorithm)
-                        hypermodel           = lambda hp: add_optimized_hyperparameters_CNN(hp=hp, model=model_ESANN_data_tot, data=data_tot),                         # modelo construido con los hiperparámetros seleccionados en cada iteración 
+                        hypermodel           = lambda hp: add_optimized_hyperparameters_RF(hp=hp, model=model_RandomForest_data_tot, data=data_tot),                         # modelo construido con los hiperparámetros seleccionados en cada iteración 
                         objective            = "val_accuracy",                                        # función objetivo a optimizar
                         max_epochs           = 100,                                                   # número máximo de épocas en cada trial a realizar durante la búsqueda de hiperparámetros
                         executions_per_trial = 3,                                                     # número de modelos que se construyen y entrenan en cada experimento
                         overwrite            = True,                                                  # sobreescribir los resultados
                         directory            = case_id_folder,                                        # directorio en el que se guardarán los resultados de la búsqueda de hiperparámetros óptimos
-                        project_name         = "Busqueda_Hiperparametros_SiMuRModel_ESANN_NET",       # nombre del proyecto asociado al ajuste de hiperparámetros
+                        project_name         = "Busqueda_Hiperparametros_SiMuRModel_Random_Forest",   # nombre del proyecto asociado al ajuste de hiperparámetros
                     ) 
                     tuner.search(data_tot.X_train, data_tot.y_train,                                  # Realizar la búsqueda de hiperparámetros óptimos para el modelo:
                         epochs=60,
                         validation_data=(data_tot.X_validation, data_tot.y_validation),       
-                        # callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)]  # Implementación de early-stopping para evitar el sobreentrenamiento (over-fitting) del modelo
+                        callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)]  # Implementación de early-stopping para evitar el sobreentrenamiento (over-fitting) del modelo
                         ) 
                     tuner.search_space_summary()
                     best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
                     filtered_values = {   # Filtra solo los hiperparámetros que no empiecen por 'tuner/'
                         k: v for k, v in best_hps.values.items() if not k.startswith("tuner/")
                     }
-                    with open(hp_json_path, "w") as f:                                        # Guardar los hiperparámetros limpios en el archivo JSON
+                    with open(hp_json_path, "w") as f:                                                             # Guardar los hiperparámetros limpios en el archivo JSON
                         json.dump(filtered_values, f, indent=4)
-                    models_after_hyperparameter_search = tuner.get_best_models(num_models=1)  # Recuperación del mejor modelo en base a los hiperparámetros calculados:
-                    best_model = models_after_hyperparameter_search[0]                        # El mejor modelo según keras será:
-                    best_model.summary()                                                      # Obtenemos un resumen del mejor modelo
-                    model_ESANN_data_tot.model = best_model                                   # Asignar el mejor modelo al objeto model_ESANN_data_tot
-                    model_ESANN_data_tot.store(modelID, case_id_folder)                    
+                    models_after_hyperparameter_search = tuner.get_best_models(num_models=1)                       # Recuperación del mejor modelo en base a los hiperparámetros calculados:
+                    best_model = models_after_hyperparameter_search[0]                                             # El mejor modelo según keras será:
+                    best_model.summary()                                                                           # Obtenemos un resumen del mejor modelo
+                    model_RandomForest_data_tot.model = best_model                                                 # Asignar el mejor modelo al objeto model_ESANN_data_tot
+                    model_RandomForest_data_tot.store(modelID, case_id_folder)                    
                     loss, accuracy = best_model.evaluate(data_tot.X_validation, data_tot.y_validation, verbose=1)  # Evaluar el mejor modelo en los datos de validación o test
                     print(f"Validation accuracy: {accuracy:.4f}")
-                
-        elif modelID == ML_Model.CAPTURE24.value:
-            dataset_file = os.path.join(case_id_folder, CONVOLUTIONAL_DATASET_FILE)
-            label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
-            config_file = os.path.join(case_id_folder, CONFIG_FILE)
-
-            # IMUs muslo + muñeca
-            data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent, 
-                                  file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
-            params_CAPTURE24 = {"N_capas": 6}
-            model_CAPTURE24_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_CAPTURE24, debug=False)
-            Ruta_model_CAPTURE24_data_tot = get_model_path(modelID)
-            if os.path.isfile(Ruta_model_CAPTURE24_data_tot):
-                model_CAPTURE24_data_tot.load(modelID, case_id_folder)
-            else:
-                callback = keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
-                model_CAPTURE24_data_tot.train()
-                model_CAPTURE24_data_tot.store(modelID, case_id_folder)
-         
-        elif modelID == ML_Model.RANDOM_FOREST.value:
-            dataset_file = os.path.join(case_id_folder, FEATURE_DATASET_FILE)
-            label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
-            config_file = os.path.join(case_id_folder, CONFIG_FILE)
-
-            # IMUs muslo + muñeca
-            data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent,
-                                   file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
-            params_RandomForest = {"n_estimators": 3000}
-            model_RandomForest_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_RandomForest, debug=False)
-            Ruta_model_RandomForest_data_tot = get_model_path(modelID)
-            if os.path.isfile(Ruta_model_RandomForest_data_tot):
-                model_RandomForest_data_tot.load(modelID, case_id_folder)
-            else:
-                model_RandomForest_data_tot.train()
-                model_RandomForest_data_tot.store(modelID, case_id_folder)
          
         _logger.info("Script ends here")
 
