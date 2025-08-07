@@ -22,7 +22,7 @@ from ray.air import RunConfig, CheckpointConfig
 from ray.air.config import FailureConfig
 from ray.air import session
 
-from models import SiMuRModel_ESANN, SiMuRModel_CAPTURE24
+from models import SiMuRModel_ESANN, SiMuRModel_CAPTURE24, SiMuRModel_RandomForest
 from sklearn.metrics import accuracy_score
 
 
@@ -212,6 +212,24 @@ def train_cnn_ray_tune(config, model_class, data):
         y_pred = y_pred.argmax(axis=1)
     val_acc = accuracy_score(data.y_validation, y_pred)
     session.report({"val_accuracy": float(val_acc)})
+    
+    
+def train_brf_ray_tune(config, model_class, data):
+    params = {                                                 # Extraer hiperparámetros desde config
+        "n_estimators": config["n_estimators"],                # Número de árboles en el bosque
+        "max_depth": config["max_depth"],                      # Profundidad máxima de los árboles
+        "min_samples_split": config["min_samples_split"],      # Muestras mínimas para dividir un nodo
+        "min_samples_leaf": config["min_samples_leaf"],        # Muestras mínimas por hoja
+        "max_features": config["max_features"]                 # Número de características consideradas por división
+    }
+    model = model_class(data, params)                          # Instanciar el modelo usando model_class
+    model.train()                                              # Entrenar el modelo
+    y_pred = model.predict(data.X_test)                        # Predecir sobre conjunto de test
+    if y_pred.ndim > 1 and y_pred.shape[1] > 1:                # Si devuelve probabilidades, convertir a clases
+        y_pred = y_pred.argmax(axis=1)
+    test_acc = accuracy_score(data.y_test, y_pred)             # Calcular precisión
+    session.report({"test_accuracy": float(test_acc)})         # Reportar precisión a Ray Tune
+    
     
 def main(args):
     """Wrapper allowing :func:`fib` to be called with string arguments in a CLI fashion
@@ -437,59 +455,105 @@ def main(args):
                 df = results.get_dataframe()
                 df.to_json(os.path.join(case_id_folder, "resultados_busqueda_ray_tune_CAPTURE24.json"), orient="records", lines=True)
                 
-         
+        
+        # **********
+        # Modelo C *
+        # **********
         elif modelID == ML_Model.RANDOM_FOREST.value:
             dataset_file = os.path.join(case_id_folder, FEATURE_DATASET_FILE)
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
             config_file = os.path.join(case_id_folder, CONFIG_FILE)
+            
             data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent,
                                    file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
-            params_RandomForest = {"n_estimators": 3000}
-            model_RandomForest_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_RandomForest, debug=False)
-            Ruta_model_RandomForest_data_tot = get_model_path(modelID, args)
-            if os.path.isfile(Ruta_model_RandomForest_data_tot):
-                model_RandomForest_data_tot.load(modelID, case_id_folder)
+            
+            # Se entrenan y salvan los modelos (fichero .pkl).
+            # Ruta al archivo de hiperparámetros guardados
+            hp_json_path = os.path.join(case_id_folder, "mejores_hiperparametros_BRF.json")
+            # Verifica que el archivo existe
+            if os.path.isfile(hp_json_path):
+                # Cargar hiperparámetros desde el archivo JSON
+                with open(hp_json_path, "r") as f:
+                    best_hp_values = json.load(f)  # Diccionario: {param: valor}
+                # Construir modelo usando modelGenerator y los hiperparámetros
+                model_RandomForest_data_tot = modelGenerator(
+                    modelID=modelID,
+                    data=data_tot,
+                    params=best_hp_values,  # Pasamos directamente el diccionario
+                    debug=False
+                )
+                # Entrenar el modelo con todos los datos
+                model_RandomForest_data_tot.train()
+                # Guardar los pesos del modelo en formato .weights.h5
+                model_RandomForest_data_tot.store(modelID, case_id_folder)
             else:
-                hp_json_path = os.path.join(case_id_folder, "best_hyperparameters.json")
-                if os.path.isfile(hp_json_path):
-                    with open(hp_json_path, "r") as f:
-                        best_hp_values = json.load(f)   
-                    hp = keras_tuner.HyperParameters()
-                    for param, value in best_hp_values.items():
-                        hp.values[param] = value 
-                    params_RandomForest = hp.values
-                    model_RandomForest_data_tot = modelGenerator(modelID=modelID, data=data_tot, params=params_RandomForest, debug=False)
-                    model_RandomForest_data_tot.train()
-                    model_RandomForest_data_tot.store(modelID, case_id_folder)
-                else:
-                    tuner = keras_tuner.Hyperband(  # Crear el obj de búsqueda keras_tuner.Hyperband(ASHA algorithm)
-                        hypermodel           = lambda hp: add_optimized_hyperparameters_RF(hp=hp, model=model_RandomForest_data_tot, data=data_tot),                         # modelo construido con los hiperparámetros seleccionados en cada iteración 
-                        objective            = "val_accuracy",                                        # función objetivo a optimizar
-                        max_epochs           = 100,                                                   # número máximo de épocas en cada trial a realizar durante la búsqueda de hiperparámetros
-                        executions_per_trial = 3,                                                     # número de modelos que se construyen y entrenan en cada experimento
-                        overwrite            = True,                                                  # sobreescribir los resultados
-                        directory            = case_id_folder,                                        # directorio en el que se guardarán los resultados de la búsqueda de hiperparámetros óptimos
-                        project_name         = "Busqueda_Hiperparametros_SiMuRModel_Random_Forest",   # nombre del proyecto asociado al ajuste de hiperparámetros
-                    ) 
-                    tuner.search(data_tot.X_train, data_tot.y_train,                                  # Realizar la búsqueda de hiperparámetros óptimos para el modelo:
-                        epochs=60,
-                        validation_data=(data_tot.X_validation, data_tot.y_validation),       
-                        callbacks=[tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=5, verbose=1)]  # Implementación de early-stopping para evitar el sobreentrenamiento (over-fitting) del modelo
-                        ) 
-                    tuner.search_space_summary()
-                    best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
-                    filtered_values = {   # Filtra solo los hiperparámetros que no empiecen por 'tuner/'
-                        k: v for k, v in best_hps.values.items() if not k.startswith("tuner/")
-                    }
-                    with open(hp_json_path, "w") as f:                                                             # Guardar los hiperparámetros limpios en el archivo JSON
-                        json.dump(filtered_values, f, indent=4)
-                    models_after_hyperparameter_search = tuner.get_best_models(num_models=1)                       # Recuperación del mejor modelo en base a los hiperparámetros calculados:
-                    best_model = models_after_hyperparameter_search[0]                                             # El mejor modelo según keras será:
-                    best_model.summary()                                                                           # Obtenemos un resumen del mejor modelo
-                    model_RandomForest_data_tot.model = best_model                                                 # Asignar el mejor modelo al objeto model_ESANN_data_tot
-                    model_RandomForest_data_tot.store(modelID, case_id_folder)                    
-                    loss, accuracy = best_model.evaluate(data_tot.X_validation, data_tot.y_validation, verbose=1)  # Evaluar el mejor modelo en los datos de validación o test
-                    print(f"Validation accuracy: {accuracy:.4f}")
+                print(f"Se lanza la búsqueda de hiperparámetros óptimos del modelo")       
+                # ------------------------------------------------------------------------------------------------------
+                # Búsqueda de hiperparámetros óptimos del modelo BalancedRandomForestClassifier, usando Ray Tune y ASHA
+                # ------------------------------------------------------------------------------------------------------
+                # Espacio de búsqueda
+                search_space = {
+                    "n_estimators": tune.randint(50, 301),                                  # Número de árboles entre 50 y 300
+                    "max_depth": tune.choice([5, 10, 15, 20, None]),                        # Profundidad máxima del árbol
+                    "min_samples_split": tune.randint(2, 11),                               # Muestras mínimas para dividir un nodo
+                    "min_samples_leaf": tune.randint(1, 11),                                # Muestras mínimas por hoja
+                    "max_features": tune.choice([None, "sqrt", "log2"])                     # Número de características por división
+                }
+
+                # Configuración del scheduler
+                scheduler = ASHAScheduler(
+                    metric="test_accuracy",       # Métrica a optimizar: precisión en el conjunto de test
+                    mode="max",                   # Se busca maximizar la métrica especificada
+                    max_t=10,                     # Número máximo de iteraciones (no se usa directamente en Random Forest, pero requerido por ASHA)
+                    grace_period=1,               # Número mínimo de iteraciones antes de detener una prueba prematuramente
+                    reduction_factor=2            # Factor por el cual se reduce el número de pruebas en cada ronda de selección
+                )
+
+                # Envolver función con parámetros adicionales
+                wrapped_train_fn = tune.with_parameters(
+                    train_brf_ray_tune,                     # Función de entrenamiento base que se usará en la búsqueda
+                    model_class=SiMuRModel_RandomForest,    # Clase del modelo a usar
+                    data=data_tot                           # Conjunto de datos completo que se pasará a cada ejecución de entrenamiento
+                )
+
+                # Crear el tuner
+                tuner = tune.Tuner(
+                    wrapped_train_fn,                                                       # Función de entrenamiento envuelta con parámetros fijos
+                    param_space=search_space,                                               # Espacio de búsqueda de hiperparámetros definido antes
+                    tune_config=TuneConfig(
+                        scheduler=scheduler,                                                # Scheduler para manejar la parada temprana (ASHAScheduler)
+                        num_samples=20,                                                     # Número de configuraciones (experimentos) a probar
+                        trial_name_creator=lambda trial: f"trial_{trial.trial_id[:5]}",     # Nombre personalizado para cada prueba
+                        trial_dirname_creator=lambda trial: f"dir_{trial.trial_id[:5]}"     # Carpeta personalizada para cada prueba
+                    ),
+                    run_config=RunConfig(
+                        name="BalancedRF_hyperparameters_tuning",                           # Nombre general del experimento
+                        storage_path=case_id_folder,                                        # Ruta donde se guardan los resultados y checkpoints
+                        checkpoint_config=CheckpointConfig(num_to_keep=1),                  # Guardar solo el último checkpoint por prueba
+                        failure_config=FailureConfig(fail_fast=False, max_failures=10),     # Permite hasta 10 fallos antes de parar
+                        verbose=2,                                                          # Nivel de detalle en los logs (más detallado)
+                        log_to_file=False                                                   # No guardar logs en archivos (evita problemas con rutas largas)
+                    )
+                )
+
+                # Ejecutar búsqueda de hiperparámetros
+                results = tuner.fit()
+
+                # Obtener mejor resultado
+                best_result = results.get_best_result(metric="test_accuracy", mode="max")
+                print("Mejores hiperparámetros:", best_result.config)
+
+                # Obtener la configuración óptima como diccionario
+                mejores_hiperparametros = best_result.config
+
+                # Guardar en un archivo JSON
+                with open(os.path.join(case_id_folder,"mejores_hiperparametros_BRF.json"), "w") as f:
+                    json.dump(mejores_hiperparametros, f, indent=4)
+
+                # Obtener los resultados como DataFrame
+                df = results.get_dataframe()
+                df.to_json(os.path.join(case_id_folder, "resultados_busqueda_ray_tune_BRF.json"), orient="records", lines=True)
+
          
         _logger.info("Script ends here")
 

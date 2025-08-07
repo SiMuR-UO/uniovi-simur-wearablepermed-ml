@@ -430,7 +430,11 @@ class SiMuRModel_RandomForest(object):
         
         #############################################################################
         # Aquí se tratan los parámetros del modelo. Esto es necesario porque estos modelos contienen muchos hiperparámetros
-        self.optimizador = params.get("n_estimators", 3000)
+        self.n_estimators = params.get("n_estimators", 1000)
+        self.max_depth = params.get("max_depth", 10)
+        self.min_samples_split = params.get("min_samples_split", 3)
+        self.min_samples_leaf = params.get("min_samples_leaf", 2)
+        self.max_features = params.get("max_features", "auto")
         
         self.testMetrics = []
         self.metrics = [accuracy_score, f1_score]
@@ -457,7 +461,14 @@ class SiMuRModel_RandomForest(object):
 
     def create_model(self):
         # Creamos el modelo de Random Forest con 3000 árboles
-        model = BalancedRandomForestClassifier(n_estimators=3000, random_state=42, n_jobs=-1, verbose=1, max_features=None, max_depth=10)  # n_jobs=-1 utiliza todos los núcleos disponibles para acelerar el entrenamiento
+        model = BalancedRandomForestClassifier(n_estimators=self.n_estimators, 
+                                               random_state=42, 
+                                               n_jobs=-1,                         # n_jobs=-1 utiliza todos los núcleos disponibles para acelerar el entrenamiento
+                                               verbose=1, 
+                                               max_features=self.max_features, 
+                                               max_depth=self.max_depth,
+                                               min_samples_split=self.min_samples_split,
+                                               min_samples_leaf=self.min_samples_leaf)  
         
         return model
     
