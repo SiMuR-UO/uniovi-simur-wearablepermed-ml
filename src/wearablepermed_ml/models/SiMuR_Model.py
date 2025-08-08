@@ -25,15 +25,15 @@ class SiMuRModel_ESANN(object):
         # Aquí se tratan los parámetros del modelo. Esto es necesario porque estos modelos contienen muchos hiperparámetros
         
         # - Hiperparámetros asociados a las opciones de entrenamiento de la CNN
-        self.optimizador = params.get("optimizer", "adam")                # especifica el optimizador a utilizar durante el entrenamiento
-        self.tamanho_minilote = params.get("miniBatchSize", 10)           # especifica el tamaño del mini-lote
-        self.tasa_aprendizaje = params.get("lr", 0.001)                     # especifica el learning-rate empleado durante el entrenamiento
+        self.optimizador = params.get("optimizador", "adam")                # especifica el optimizador a utilizar durante el entrenamiento
+        self.tamanho_minilote = params.get("tamanho_minilote", 10)           # especifica el tamaño del mini-lote
+        self.tasa_aprendizaje = params.get("tasa_aprendizaje", 0.01)                     # especifica el learning-rate empleado durante el entrenamiento
         
         # - Hiperparámetros asociados a la arquitectura de la red CNN
         self.N_capas = params.get("N_capas", 2)                           # especifica el número de capas ocultas de la red
-        self.activacion_capas_ocultas = params.get("activation", "relu")  # especifica la función de activación asociada las neuronas de las capas ocultas
-        self.numero_filtros = params.get("numFilters", 12)                # especifica el número de filtros utilizados en las capas ocultas de la red
-        self.tamanho_filtro = params.get("filterSize", 7)                 # especifica el tamaño de los filtros de las capas ocultas
+        self.activacion_capas_ocultas = params.get("funcion_activacion", "relu")  # especifica la función de activación asociada las neuronas de las capas ocultas
+        self.numero_filtros = params.get("numero_filtros", 12)                # especifica el número de filtros utilizados en las capas ocultas de la red
+        self.tamanho_filtro = params.get("tamanho_filtro", 7)                 # especifica el tamaño de los filtros de las capas ocultas
         
         self.testMetrics = []
         self.metrics = [accuracy_score, f1_score]
@@ -48,12 +48,32 @@ class SiMuRModel_ESANN(object):
         # El formato del objeto Data puede variar de aplicación en aplicación
         
         self.X_train = data.X_train
-        self.X_validation = data.X_validation        
-        self.X_test  = data.X_test
+        
+        try:
+            self.X_validation = data.X_validation 
+        except:
+            print("Not enough data for validation.")
+            self.X_validation = None 
+            
+        try:      
+            self.X_test = data.X_test
+        except:
+            print("Not enough data for test.")
+            self.X_test = None
         
         self.y_train = data.y_train
-        self.y_validation  = data.y_validation
-        self.y_test  = data.y_test
+        
+        try:
+            self.y_validation = data.y_validation
+        except:
+            print("Not enough data for validation.")
+            self.y_validation = None
+            
+        try:
+            self.y_test = data.y_test
+        except:
+            print("Not enough data for test.")
+            self.y_test = None
 
         #############################################################################
         # También se crea el modelo. Si es una red aquí se define el grafo. 
@@ -67,31 +87,28 @@ class SiMuRModel_ESANN(object):
 
     def create_model(self):
         # Aquí se define la red, SVC, árbol, etc.
-        
-        # self.numFeatures = 18   # especifica el número de características
-        # self.numClasses = 17    # especifica el número de clases
         self.numClasses = int((max(self.y_train)+1)[0])    # especifica el número de clases
-        # self.filterSize = 5     # especifica el tamaño del filtro
-        # self.numFilters = 16    # especifica el número de filtros
-        # self.miniBatchSize = 27 # especifica el tamaño del lote mini
-        # self.max_epochs = 20    # especifica el número máximo de épocas
 
         # if (self.X_train).shape[1]==12:
         #     dimension_de_entrada = (12, 250)
         # elif (self.X_train).shape[1]==6:
         dimension_de_entrada = (6, 250)
-            
-        model = models.Sequential([
-            layers.InputLayer(input_shape=dimension_de_entrada),
-            layers.Conv1D(self.numero_filtros, self.tamanho_filtro, padding="causal", activation=self.activacion_capas_ocultas),
-            layers.LayerNormalization(),
-            layers.Conv1D(2*self.numero_filtros, self.tamanho_filtro, padding="causal", activation=self.activacion_capas_ocultas),
-            layers.LayerNormalization(),
-            layers.GlobalAveragePooling1D(),
-            layers.Dropout(0.1),
-            layers.Dense(self.numClasses, activation='softmax')
-        ])
+        
+        model = models.Sequential()
+        model.add(layers.InputLayer(input_shape=dimension_de_entrada))
 
+        # Añadir capas convolucionales según N_capas
+        for i in range(self.N_capas):
+            filtros = self.numero_filtros
+            model.add(layers.Conv1D(filtros, self.tamanho_filtro, padding="causal", activation=self.activacion_capas_ocultas))
+            model.add(layers.LayerNormalization())
+
+        # Capas finales fijas
+        model.add(layers.GlobalAveragePooling1D())
+        model.add(layers.Dropout(0.2))
+        model.add(layers.Dense(self.numClasses, activation='softmax'))
+
+        # Optimizadores
         if self.optimizador == "adam":
             optimizer_hyperparameter = tf.keras.optimizers.Adam(learning_rate=self.tasa_aprendizaje)
         elif self.optimizador == 'rmsprop':
@@ -108,25 +125,44 @@ class SiMuRModel_ESANN(object):
 
         return model
     
-    def train(self):
-        # Se lanza el entrenamiento de los modelos. El código para lanzar el entrenamiento depende mucho del modelo.  
-        history = self.model.fit(self.X_train, self.y_train, validation_data=(self.X_validation, self.y_validation),
-                                 batch_size=self.tamanho_minilote,
-                                 epochs=100,
-                                 verbose=1,
-                                 callbacks = [keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)]
-                                )
+    def train(self, epochs):
+        # Se lanza el entrenamiento de los modelos. El código para lanzar el entrenamiento depende mucho del modelo.        
+        callbacks = [
+            keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
+        ]
         
-        # Cuando acaba el entrenamiento y obtenemos los pesos óptimos, las métricas de error para los datos de test son calculadas.
-        self.y_test_est = self.predict(self.X_test)
-        self.y_test_est = np.argmax(self.y_test_est, axis=1)  # Trabajamos con clasificación multicategoría
+        # Verifica si X_validation e y_validation existen
+        if self.X_validation is not None and self.y_validation is not None:
+            history = self.model.fit(
+                self.X_train,
+                self.y_train,
+                validation_data=(self.X_validation, self.y_validation),
+                batch_size=self.tamanho_minilote,
+                epochs=epochs,
+                verbose=1,
+                callbacks=callbacks
+            )
+        else:
+            history = self.model.fit(
+                self.X_train,
+                self.y_train,
+                batch_size=self.tamanho_minilote,
+                epochs=epochs,
+                verbose=1,
+                callbacks=callbacks
+            )
         
-        # y_test_est_float_round = np.around(self.y_test_est)        # Redondear vector de tipo float (codificado en one_hot)
-        # y_test_est_int_round = y_test_est_float_round.astype(int)  # Obtención de vector de tipo int
-        # self.y_test_est = y_test_est_int_round                     # Asignación del atributo y_test_est
+        if self.X_test is not None and self.y_test is not None:
+            # Cuando acaba el entrenamiento y obtenemos los pesos óptimos, las métricas de error para los datos de test son calculadas.
+            self.y_test_est = self.predict(self.X_test)
+            self.y_test_est = np.argmax(self.y_test_est, axis=1)  # Trabajamos con clasificación multicategoría
+            
+            # y_test_est_float_round = np.around(self.y_test_est)        # Redondear vector de tipo float (codificado en one_hot)
+            # y_test_est_int_round = y_test_est_float_round.astype(int)  # Obtención de vector de tipo int
+            # self.y_test_est = y_test_est_int_round                     # Asignación del atributo y_test_est
 
-        self.testMetrics = [accuracy_score(self.y_test, self.y_test_est),
-                            f1_score(self.y_test, self.y_test_est, average='micro')] # REVISAR la opción 'average'
+            self.testMetrics = [accuracy_score(self.y_test, self.y_test_est),
+                                f1_score(self.y_test, self.y_test_est, average='micro')] # REVISAR la opción 'average'
 
     def predict(self,X):
         # Método para predecir una o varias muestras.
@@ -139,7 +175,7 @@ class SiMuRModel_ESANN(object):
         path = os.path.join(path, model_id + ".weights.h5")
         
         self.model.save_weights(path)
-        print("Saved model to disk")
+        print("Saved model to disk.")
 
         return None
     
@@ -148,7 +184,7 @@ class SiMuRModel_ESANN(object):
         path = os.path.join(path, model_id + ".weights.h5")
 
         self.model.load_weights(path)
-        print("Loaded model from disk")
+        print("Loaded model from disk.")
 
         # Evaluate loaded model on test data
         self.model.compile(loss='sparse_categorical_crossentropy', 
@@ -178,15 +214,15 @@ class SiMuRModel_CAPTURE24(object):
         
         #############################################################################
         # - Hiperparámetros asociados a las opciones de entrenamiento de la CNN
-        self.optimizador = params.get("optimizer", "rmsprop")             # especifica el optimizador a utilizar durante el entrenamiento
-        self.tamanho_minilote = params.get("miniBatchSize", 10)           # especifica el tamaño del mini-lote
-        self.tasa_aprendizaje = params.get("lr", 0.00045493796608069996)  # especifica el learning-rate empleado durante el entrenamiento
+        self.optimizador = params.get("optimizador", "rmsprop")              # especifica el optimizador a utilizar durante el entrenamiento
+        self.tamanho_minilote = params.get("tamanho_minilote", 10)           # especifica el tamaño del mini-lote
+        self.tasa_aprendizaje = params.get("tasa_aprendizaje", 0.001)        # especifica el learning-rate empleado durante el entrenamiento
         
         # - Hiperparámetros asociados a la arquitectura de la red CNN
-        self.N_capas = params.get("N_capas", 6)                           # especifica el número de capas ocultas de la red
-        self.activacion_capas_ocultas = params.get("activation", "relu")  # especifica la función de activación asociada las neuronas de las capas ocultas
-        self.numero_filtros = params.get("numFilters", 12)                # especifica el número de filtros utilizados en las capas ocultas de la red
-        self.tamanho_filtro = params.get("filterSize", 7)                 # especifica el tamaño de los filtros de las capas ocultas
+        self.N_capas = params.get("N_capas", 6)                                   # especifica el número de capas ocultas de la red
+        self.activacion_capas_ocultas = params.get("funcion_activacion", "relu")  # especifica la función de activación asociada las neuronas de las capas ocultas
+        self.numero_filtros = params.get("numero_filtros", 12)                    # especifica el número de filtros utilizados en las capas ocultas de la red
+        self.tamanho_filtro = params.get("tamanho_filtro", 7)                     # especifica el tamaño de los filtros de las capas ocultas
         
         
         self.testMetrics = []
@@ -202,12 +238,32 @@ class SiMuRModel_CAPTURE24(object):
         # El formato del objeto Data puede variar de aplicación en aplicación
         
         self.X_train = data.X_train
-        self.X_validation = data.X_validation        
-        self.X_test  = data.X_test        
-
+        
+        try:
+            self.X_validation = data.X_validation 
+        except:
+            print("Not enough data for validation.")
+            self.X_validation = None 
+            
+        try:      
+            self.X_test = data.X_test
+        except:
+            print("Not enough data for test.")
+            self.X_test = None
+        
         self.y_train = data.y_train
-        self.y_validation = data.y_validation
-        self.y_test  = data.y_test
+        
+        try:
+            self.y_validation = data.y_validation
+        except:
+            print("Not enough data for validation.")
+            self.y_validation = None
+            
+        try:
+            self.y_test = data.y_test
+        except:
+            print("Not enough data for test.")
+            self.y_test = None
 
         #############################################################################
         # También se crea el modelo. Si es una red aquí se define el grafo.
@@ -220,27 +276,18 @@ class SiMuRModel_CAPTURE24(object):
         #############################################################################
 
     # Definimos la función de bloque residual (ResBlock)
-    def ResBlock(self, x, filters, kernel_size, strides=1):
+    def ResBlock(self, x, filtros, kernel_size, activation='relu'):
         shortcut = x
-        x = layers.Conv1D(filters, kernel_size, strides=strides, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-        x = layers.ReLU()(x)
-        x = layers.Conv1D(filters, kernel_size, strides=strides, padding="same")(x)
-        x = layers.BatchNormalization()(x)
-        x = layers.add([x, shortcut])  # Conexión residual
-        x = layers.ReLU()(x)
-
+        x = layers.Conv1D(filtros, kernel_size, padding='same', activation=activation)(x)
+        x = layers.Conv1D(filtros, kernel_size, padding='same')(x)
+        x = layers.Add()([x, shortcut])
+        x = layers.Activation(activation)(x)
         return x
+
     
     
     def create_model(self):
-        #self.numFeatures = 6      # especifica el número de características
-        # self.numClasses = 17      # especifica el número de clases
         self.numClasses = int((max(self.y_train)+1)[0])    # especifica el número de clases
-        # self.filterSize = 5     # especifica el tamaño del filtro
-        # self.numFilters = 16    # especifica el número de filtros
-        # self.miniBatchSize = 27 # especifica el tamaño del lote mini
-        # self.max_epochs = 20    # especifica el número máximo de épocas
         
         #if (self.X_train).shape[1]==12:
         #    dimension_de_entrada = (12, 250)
@@ -250,38 +297,19 @@ class SiMuRModel_CAPTURE24(object):
         # Entrada
         inputs = layers.Input(shape=dimension_de_entrada)
 
-        # Primer bloque Conv(3, 128)
-        x = layers.Conv1D(128, 3, strides=2, padding="same", activation="relu")(inputs)
+        x = inputs
 
-        # Segundo bloque Conv(3, 128) y 3 x ResBlock(3, 128) / 2
-        x = layers.Conv1D(128, 3, strides=1, padding="same", activation="relu")(x)
-        x = self.ResBlock(x, 128, 3)  # ResBlock 1
-        x = self.ResBlock(x, 128, 3)  # ResBlock 2
-        x = self.ResBlock(x, 128, 3)  # ResBlock 3
+        for i in range(self.N_capas):
+            # Puedes incrementar el número de filtros en cada conjunto, si lo deseas
+            filtros = self.numero_filtros * (2 ** (i // 2))  # Ejemplo: 64, 64, 128, 128, 256, 256, 512, 512, 1024 ...
+            
+            # Capa convolucional del conjunto
+            x = layers.Conv1D(filtros, self.tamanho_filtro, strides=1, padding="same", activation=self.activacion_capas_ocultas)(x)
 
-        # Tercer bloque Conv(3, 256) y 3 x ResBlock(3, 256) / 2
-        x = layers.Conv1D(256, 3, strides=1, padding="same", activation="relu")(x)
-        x = self.ResBlock(x, 256, 3)  # ResBlock 1
-        x = self.ResBlock(x, 256, 3)  # ResBlock 2
-        x = self.ResBlock(x, 256, 3)  # ResBlock 3
-
-        # Cuarto bloque Conv(3, 256) y 3 x ResBlock(3, 256) / 5
-        x = layers.Conv1D(256, 3, strides=1, padding="same", activation="relu")(x)
-        x = self.ResBlock(x, 256, 3)  # ResBlock 1
-        x = self.ResBlock(x, 256, 3)  # ResBlock 2
-        x = self.ResBlock(x, 256, 3)  # ResBlock 3
-
-        # Quinto bloque Conv(3, 512) y 3 x ResBlock(3, 512) / 5
-        x = layers.Conv1D(512, 3, strides=1, padding="same", activation="relu")(x)
-        x = self.ResBlock(x, 512, 3)  # ResBlock 1
-        x = self.ResBlock(x, 512, 3)  # ResBlock 2
-        x = self.ResBlock(x, 512, 3)  # ResBlock 3
-
-        # Sexto bloque Conv(3, 512) y 3 x ResBlock(3, 512) / 5
-        x = layers.Conv1D(512, 3, strides=1, padding="same", activation="relu")(x)
-        x = self.ResBlock(x, 512, 3)  # ResBlock 1
-        x = self.ResBlock(x, 512, 3)  # ResBlock 2
-        x = self.ResBlock(x, 512, 3)  # ResBlock 3
+            # 3 ResBlocks por conjunto
+            x = self.ResBlock(x, filtros, self.tamanho_filtro, activation=self.activacion_capas_ocultas)  # ResBlock 1
+            x = self.ResBlock(x, filtros, self.tamanho_filtro, activation=self.activacion_capas_ocultas)  # ResBlock 2
+            x = self.ResBlock(x, filtros, self.tamanho_filtro, activation=self.activacion_capas_ocultas)  # ResBlock 3
 
         # Global average pooling
         x = layers.GlobalAveragePooling1D()(x)
@@ -313,25 +341,45 @@ class SiMuRModel_CAPTURE24(object):
         model_CNN_CAPTURE24.summary()
         return model_CNN_CAPTURE24
     
-    def train(self):
-        # Se lanza el entrenamiento de los modelos. El código para lanzar el entrenamiento depende mucho del modelo.  
-        history = self.model.fit(self.X_train, self.y_train, validation_data=(self.X_validation, self.y_validation),
-                                 batch_size=self.tamanho_minilote,
-                                 epochs=100,
-                                 verbose=1,
-                                 callbacks = [keras.callbacks.EarlyStopping(monitor='loss', patience=5)]
-                                 )
+    def train(self, epochs):
+        # Se lanza el entrenamiento de los modelos. El código para lanzar el entrenamiento depende mucho del modelo.        
+        callbacks = [
+            keras.callbacks.EarlyStopping(monitor='val_loss', patience=5)
+        ]
         
-        # Cuando acaba el entrenamiento y obtenemos los pesos óptimos, las métricas de error para los datos de test son calculadas.
-        self.y_test_est = self.predict(self.X_test)
-        self.y_test_est = np.argmax(self.y_test_est, axis=1)  # Trabajamos con clasificación multicategoría
+        # Verifica si X_validation e y_validation existen
+        if self.X_validation is not None and self.y_validation is not None:
+            history = self.model.fit(
+                self.X_train,
+                self.y_train,
+                validation_data=(self.X_validation, self.y_validation),
+                batch_size=self.tamanho_minilote,
+                epochs=epochs,
+                verbose=1,
+                callbacks=callbacks
+            )
+        else:
+            history = self.model.fit(
+                self.X_train,
+                self.y_train,
+                batch_size=self.tamanho_minilote,
+                epochs=epochs,
+                verbose=1,
+                callbacks=callbacks
+            )
         
-        # y_test_est_float_round = np.around(self.y_test_est)        # Redondear vector de tipo float (codificado en one_hot)
-        # y_test_est_int_round = y_test_est_float_round.astype(int)  # Obtención de vector de tipo int
-        # self.y_test_est = y_test_est_int_round                     # Asignación del atributo y_test_est
+        if self.X_test is not None and self.y_test is not None:
+            # Cuando acaba el entrenamiento y obtenemos los pesos óptimos, las métricas de error para los datos de test son calculadas.
+            self.y_test_est = self.predict(self.X_test)
+            self.y_test_est = np.argmax(self.y_test_est, axis=1)  # Trabajamos con clasificación multicategoría
+            
+            # y_test_est_float_round = np.around(self.y_test_est)        # Redondear vector de tipo float (codificado en one_hot)
+            # y_test_est_int_round = y_test_est_float_round.astype(int)  # Obtención de vector de tipo int
+            # self.y_test_est = y_test_est_int_round                     # Asignación del atributo y_test_est
 
-        self.testMetrics = [accuracy_score(self.y_test, self.y_test_est),
-                            f1_score(self.y_test, self.y_test_est, average='micro')] # REVISAR la opción 'average'
+            self.testMetrics = [accuracy_score(self.y_test, self.y_test_est),
+                                f1_score(self.y_test, self.y_test_est, average='micro')] # REVISAR la opción 'average'
+
 
     def predict(self, X):
         # Método para predecir una o varias muestras.
@@ -344,7 +392,7 @@ class SiMuRModel_CAPTURE24(object):
         path = os.path.join(path, model_id + ".weights.h5")
 
         self.model.save_weights(path)
-        print("Saved model to disk")
+        print("Saved model to disk.")
 
         return None
     
@@ -353,7 +401,7 @@ class SiMuRModel_CAPTURE24(object):
         path = os.path.join(path, model_id + ".weights.h5")
 
         self.model.load_weights(path)
-        print("Loaded model from disk")
+        print("Loaded model from disk.")
         # Evaluate loaded model on test data
         self.model.compile(loss='sparse_categorical_crossentropy', 
                            optimizer=self.optimizador, 
@@ -382,7 +430,11 @@ class SiMuRModel_RandomForest(object):
         
         #############################################################################
         # Aquí se tratan los parámetros del modelo. Esto es necesario porque estos modelos contienen muchos hiperparámetros
-        self.optimizador = params.get("n_estimators", 3000)
+        self.n_estimators = params.get("n_estimators", 1000)
+        self.max_depth = params.get("max_depth", 10)
+        self.min_samples_split = params.get("min_samples_split", 3)
+        self.min_samples_leaf = params.get("min_samples_leaf", 2)
+        self.max_features = params.get("max_features", "auto")
         
         self.testMetrics = []
         self.metrics = [accuracy_score, f1_score]
@@ -409,7 +461,14 @@ class SiMuRModel_RandomForest(object):
 
     def create_model(self):
         # Creamos el modelo de Random Forest con 3000 árboles
-        model = BalancedRandomForestClassifier(n_estimators=3000, random_state=42, n_jobs=-1, verbose=1, max_features=None, max_depth=10)  # n_jobs=-1 utiliza todos los núcleos disponibles para acelerar el entrenamiento
+        model = BalancedRandomForestClassifier(n_estimators=self.n_estimators, 
+                                               random_state=42, 
+                                               n_jobs=-1,                         # n_jobs=-1 utiliza todos los núcleos disponibles para acelerar el entrenamiento
+                                               verbose=1, 
+                                               max_features=self.max_features, 
+                                               max_depth=self.max_depth,
+                                               min_samples_split=self.min_samples_split,
+                                               min_samples_leaf=self.min_samples_leaf)  
         
         return model
     

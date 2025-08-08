@@ -354,10 +354,13 @@ class DataReader(object):
         
         self.X_train = X_train
         self.y_train = y_train
-        self.X_validation = X_validation
-        self.y_validation = y_validation
-        self.X_test = X_test
-        self.y_test = y_test
+        try:
+            self.X_validation = X_validation
+            self.y_validation = y_validation
+            self.X_test = X_test
+            self.y_test = y_test
+        except:
+            print("Not enough data for validation and/or test.")                                    
         
         # Guardar el LabelEncoder después de ajustarlo
         joblib.dump(label_encoder, label_encoder_path)
