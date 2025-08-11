@@ -22,11 +22,11 @@ from ray.air import RunConfig, CheckpointConfig
 from ray.air.config import FailureConfig
 from ray.air import session
 
-from models import SiMuRModel_ESANN, SiMuRModel_CAPTURE24, SiMuRModel_RandomForest
+from models import SiMuRModel_ESANN, SiMuRModel_CAPTURE24, SiMuRModel_RandomForest, SiMuRModel_XGBoost
 from sklearn.metrics import accuracy_score
 
 
-# Configuration du GPU
+# Configuration of GPU
 gpus = tf.config.list_physical_devices('GPU')
 if gpus:
     try:
@@ -37,6 +37,7 @@ if gpus:
         print(f"GPU configuration error : {e}")
 else:
     print("⚠️ I also discovered the GPU. Training takes place on the CPU.")
+
 
 __author__ = "Miguel Salinas <uo34525@uniovi.es>, Alejandro <uo265351@uniovi.es>"
 __copyright__ = "Uniovi"
@@ -231,6 +232,27 @@ def train_brf_ray_tune(config, model_class, data):
     session.report({"test_accuracy": float(test_acc)})         # Reportar precisión a Ray Tune
     
     
+def train_xgb_ray_tune(config, model_class, data):
+    params = {                                                      # Extraer hiperparámetros desde config
+        "num_boost_round": config["num_boost_round"],               # Número de árboles (rondas) de boosting
+        "max_depth": config["max_depth"],                           # Profundidad máxima
+        "learning_rate": config["learning_rate"],                   # Tasa de aprendizaje
+        "subsample": config["subsample"],                           # Fracción de muestras por árbol
+        "colsample_bytree": config["colsample_bytree"],             # Fracción de columnas por árbol
+        "gamma": config["gamma"],                                   # Regularización mínima de pérdida
+        "min_child_weight": config["min_child_weight"],             # Peso mínimo de hijos
+        "reg_alpha": config["reg_alpha"],                           # L1 regularization
+        "reg_lambda": config["reg_lambda"]                          # L2 regularization
+    }
+    model = model_class(data, params)                               # Instanciar el modelo usando model_class (ej. SiMuRModel_XGBoost)
+    model.train()                                                   # Entrenar el modelo
+    y_pred = model.predict(data.X_validation)                       # Predecir sobre conjunto de validación
+    if y_pred.ndim > 1 and y_pred.shape[1] > 1:                     # Si devuelve probabilidades, convertir a clases
+        y_pred = y_pred.argmax(axis=1)
+    validation_acc = accuracy_score(data.y_validation, y_pred)      # Calcular precisión
+    session.report({"validation_accuracy": float(validation_acc)})  # Reportar precisión a Ray Tune
+
+   
 def main(args):
     """Wrapper allowing :func:`fib` to be called with string arguments in a CLI fashion
 
@@ -353,6 +375,19 @@ def main(args):
                 # Obtener los resultados como DataFrame
                 df = results.get_dataframe()
                 df.to_json(os.path.join(case_id_folder, "resultados_busqueda_ray_tune_ESANN.json"), orient="records", lines=True)
+                
+                # Construir modelo usando modelGenerator y los mejores hiperparámetros
+                model_ESANN_data_tot = modelGenerator(
+                    modelID=modelID,
+                    data=data_tot,
+                    params=mejores_hiperparametros,  # Pasamos directamente el diccionario
+                    debug=False
+                )
+                # Entrenar el modelo con todos los datos
+                model_ESANN_data_tot.train(mejores_hiperparametros['epochs'])
+                # Guardar los pesos del modelo en formato .weights.h5
+                model_ESANN_data_tot.store(modelID, case_id_folder)
+
 
         # **********
         # Modelo B *
@@ -455,6 +490,18 @@ def main(args):
                 df = results.get_dataframe()
                 df.to_json(os.path.join(case_id_folder, "resultados_busqueda_ray_tune_CAPTURE24.json"), orient="records", lines=True)
                 
+                # Construir modelo usando modelGenerator y los mejores hiperparámetros
+                model_CAPTURE24_data_tot = modelGenerator(
+                    modelID=modelID,
+                    data=data_tot,
+                    params=mejores_hiperparametros,  # Pasamos directamente el diccionario
+                    debug=False
+                )
+                # Entrenar el modelo con todos los datos
+                model_CAPTURE24_data_tot.train(mejores_hiperparametros['epochs'])
+                # Guardar los pesos del modelo en formato .weights.h5
+                model_CAPTURE24_data_tot.store(modelID, case_id_folder)
+                
         
         # **********
         # Modelo C *
@@ -553,6 +600,131 @@ def main(args):
                 # Obtener los resultados como DataFrame
                 df = results.get_dataframe()
                 df.to_json(os.path.join(case_id_folder, "resultados_busqueda_ray_tune_BRF.json"), orient="records", lines=True)
+                
+                # Construir modelo usando modelGenerator y los mejores hiperparámetros
+                model_RandomForest_data_tot = modelGenerator(
+                    modelID=modelID,
+                    data=data_tot,
+                    params=mejores_hiperparametros,  # Pasamos directamente el diccionario
+                    debug=False
+                )
+                # Entrenar el modelo con todos los datos
+                model_RandomForest_data_tot.train()
+                # Guardar los pesos del modelo en formato .weights.h5
+                model_RandomForest_data_tot.store(modelID, case_id_folder)
+                
+                
+        # **********
+        # Modelo D *
+        # **********
+        elif modelID == ML_Model.XGBOOST.value:
+            dataset_file = os.path.join(case_id_folder, FEATURE_DATASET_FILE)
+            label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
+            config_file = os.path.join(case_id_folder, CONFIG_FILE)
+            
+            data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent,
+                                   file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
+            
+            # Se entrenan y salvan los modelos (fichero .pkl).
+            # Ruta al archivo de hiperparámetros guardados
+            hp_json_path = os.path.join(case_id_folder, "mejores_hiperparametros_XGB.json")
+            # Verifica que el archivo existe
+            if os.path.isfile(hp_json_path):
+                # Cargar hiperparámetros desde el archivo JSON
+                with open(hp_json_path, "r") as f:
+                    best_hp_values = json.load(f)  # Diccionario: {param: valor}
+                # Construir modelo usando modelGenerator y los hiperparámetros
+                model_XGBoost_data_tot = modelGenerator(
+                    modelID=modelID,
+                    data=data_tot,
+                    # params=best_hp_values,  # Pasamos directamente el diccionario
+                    params=best_hp_values,
+                    debug=False
+                )
+                # Entrenar el modelo con todos los datos de (X_train, y_train), implementando la validación con (X_validation, y_validation) 
+                model_XGBoost_data_tot.train()
+                # Guardar los pesos del modelo en formato .weights.h5
+                model_XGBoost_data_tot.store(modelID, case_id_folder)
+                
+            else:
+                print(f"Se lanza la búsqueda de hiperparámetros óptimos del modelo.")       
+                # ------------------------------------------------------------------------------------------------------
+                # Búsqueda de hiperparámetros óptimos del modelo XGBoost, usando Ray Tune (ASHA)
+                # ------------------------------------------------------------------------------------------------------
+                # Espacio de búsqueda para XGBoost
+                search_space_xgb = {
+                    "num_boost_round": tune.randint(50, 3001),             # Árboles (rondas) de boosting
+                    "max_depth": tune.randint(3, 11),                      # Profundidad máxima
+                    "learning_rate": tune.uniform(0.01, 0.3),              # Tasa de aprendizaje
+                    "subsample": tune.uniform(0.5, 1.0),                   # Fracción de muestras por árbol
+                    "colsample_bytree": tune.uniform(0.5, 1.0),            # Fracción de columnas por árbol
+                    "gamma": tune.uniform(0, 5),                           # Regularización mínima de pérdida
+                    "min_child_weight": tune.randint(1, 10),               # Peso mínimo de hijos
+                    "reg_alpha": tune.uniform(0, 1),                       # L1 regularization
+                    "reg_lambda": tune.uniform(0, 1)                       # L2 regularization
+                }
+
+                # Configuración del scheduler (igual que en RF)
+                scheduler = ASHAScheduler(            # Crea una instancia del scheduler ASHA para optimizar entrenamientos
+                    metric="validation_accuracy",     # Métrica a optimizar (precisión en validación)
+                    mode="max",                       # Indica que la métrica debe maximizarse
+                    max_t=10,                         # Número máximo de iteraciones/épocas por configuración
+                    grace_period=1,                   # Número mínimo de iteraciones antes de detener un trial por bajo rendimiento
+                    reduction_factor=2                # Factor de reducción para descartar configuraciones poco prometedoras
+                )
+
+                # Envolver función de entrenamiento
+                wrapped_train_fn_xgb = tune.with_parameters(   # Crea una versión de la función con parámetros fijos predefinidos
+                    train_xgb_ray_tune,                        # Función de entrenamiento adaptada a XGBoost
+                    model_class=SiMuRModel_XGBoost,            # Clase del modelo a utilizar (implementación XGBoost personalizada)
+                    data=data_tot                              # Conjunto de datos completo que se usará en el entrenamiento
+                )
+
+                # Crear el tuner
+                tuner_xgb = tune.Tuner(                                                   # Crea un objeto Tuner para ejecutar la búsqueda de hiperparámetros
+                    wrapped_train_fn_xgb,                                                 # Función de entrenamiento envuelta con parámetros fijos
+                    param_space=search_space_xgb,                                         # Espacio de búsqueda de hiperparámetros
+                    tune_config=TuneConfig(                                               # Configuración de la optimización
+                        scheduler=scheduler,                                              # Planificador (scheduler) para gestionar recursos y early stopping
+                        num_samples=20,                                                   # Número de configuraciones distintas a probar
+                        trial_name_creator=lambda trial: f"trial_{trial.trial_id[:5]}",   # Nombre personalizado para cada experimento
+                        trial_dirname_creator=lambda trial: f"dir_{trial.trial_id[:5]}"   # Carpeta personalizada para cada experimento
+                    ),
+                    run_config=RunConfig(                                                 # Configuración de ejecución de los experimentos
+                        name="XGBoost_hyperparameters_tuning",                            # Nombre general de la ejecución
+                        storage_path=case_id_folder,                                      # Carpeta donde guardar resultados y checkpoints
+                        checkpoint_config=CheckpointConfig(num_to_keep=1),                # Mantener solo el último checkpoint por trial
+                        failure_config=FailureConfig(fail_fast=False, max_failures=10),   # Permitir hasta 10 fallos sin abortar
+                        verbose=2,                                                        # Nivel de detalle en la salida por consola
+                        log_to_file=False                                                 # No guardar logs en archivo (solo consola)
+                    )
+                )
+
+                # Ejecutar la búsqueda
+                results_xgb = tuner_xgb.fit()
+
+                # Mejor resultado
+                best_result_xgb = results_xgb.get_best_result(metric="validation_accuracy", mode="max")
+                print("Mejores hiperparámetros XGBoost:", best_result_xgb.config)
+
+                # Guardar en JSON
+                mejores_hiperparametros_xgb = best_result_xgb.config
+                with open(os.path.join(case_id_folder, "mejores_hiperparametros_XGB.json"), "w") as f:
+                    json.dump(mejores_hiperparametros_xgb, f, indent=4)
+
+                # Guardar todos los resultados
+                df_xgb = results_xgb.get_dataframe()
+                df_xgb.to_json(os.path.join(case_id_folder, "resultados_busqueda_ray_tune_XGB.json"), orient="records", lines=True)
+
+                # Construir y entrenar modelo con mejores hiperparámetros
+                model_XGB_data_tot = modelGenerator(
+                    modelID=modelID,
+                    data=data_tot,
+                    params=mejores_hiperparametros_xgb,
+                    debug=False
+                )
+                model_XGB_data_tot.train()
+                model_XGB_data_tot.store(modelID, case_id_folder)
 
          
         _logger.info("Script ends here")

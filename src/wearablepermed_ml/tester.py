@@ -71,7 +71,7 @@ def parse_args(args):
         '--validation-percent',
         dest='validation_percent',
         type=int,
-        default=20,
+        default=0,
         help="Validation percent"
     )
     parser.add_argument(
