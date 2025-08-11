@@ -50,7 +50,6 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
 
     if (model_id == ML_Model.ESANN.value):
         test_dataset_path = os.path.join(case_id_folder, "data_all.npz")
-
         params = {
             "optimizer": "rmsprop",
             "miniBatchSize": 10,
@@ -60,9 +59,9 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
             "numFilters": 12,
             "filterSize": 7
         }
+    
     elif (model_id == ML_Model.CAPTURE24.value):
         test_dataset_path = os.path.join(case_id_folder, "data_all.npz")
-
         params = {
             "optimizer": "rmsprop",
             "miniBatchSize": 10,
@@ -72,15 +71,16 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
             "numFilters": 12,
             "filterSize": 7
         }
+    
     elif (model_id == ML_Model.RANDOM_FOREST.value):
         test_dataset_path = os.path.join(case_id_folder, "data_feature_all.npz")
-
         params = {
             "n_estimators": 3000
         }
 
     elif (model_id == ML_Model.XGBOOST.value):
-        raise Exception("Model training not implemented")
+        test_dataset_path = os.path.join(case_id_folder, "data_feature_all.npz")
+        params={"n_estimators": 1000}
         
     # Testeamos el rendimiento del modelo de clasificación con los DATOS TOTALES
     data = DataReader(modelID=model_id, create_superclasses=create_superclasses, p_train = training_percent, p_validation=validation_percent, file_path=test_dataset_path, label_encoder_path=test_label_encoder_path)
@@ -100,7 +100,7 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     if (model_id == ML_Model.ESANN.value or model_id == ML_Model.CAPTURE24.value):
         y_final_predicton = np.argmax(y_predicted, axis=1)  # Trabajamos con clasificación multicategoría, no necesario para los bosques aleatorios
     else:
-        y_final_predicton = y_predicted   # esta línea solo es necesaria para los bosques aleatorios
+        y_final_predicton = y_predicted   # esta línea solo es necesaria para los bosques aleatorios y XGBoost
 
     print(model.y_test)
     print(model.y_test.shape)
@@ -141,14 +141,13 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
         f.write(f"Global accuracy score: {acc_score:.4f}\n")
 
     # Obtener todas las clases posibles desde 0 hasta N-1
-    num_classes = len(class_names_total)  # Asegúrate de que contiene TODAS las clases, incluso si no están en y_test
+    num_classes = len(class_names_total)  # Número total de clases
     all_classes = np.arange(num_classes)  # Crea un array con todas las clases (0, 1, 2, ..., N-1)
 
     # Tabla de métricas para cada clase
-    # Save to a file
     classification_per_class_report = classification_report(model.y_test, y_final_predicton, labels=all_classes, target_names=class_names_total, zero_division=0)
     print(classification_per_class_report)        
-
+    # Save to a file
     clasification_per_class_report_path = os.path.join(case_id_folder, "clasification_per_class_report.txt")
     with open(clasification_per_class_report_path, "w") as f:        
         f.write(classification_per_class_report)

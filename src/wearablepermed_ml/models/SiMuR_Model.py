@@ -4,13 +4,12 @@ import joblib # Librería empleada para guardar y cargar los modelos Random Fore
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
 import tensorflow as tf
-from tensorflow.keras import layers, models, regularizers
+from tensorflow.keras import layers, models
 import keras
 # from sklearn.ensemble import RandomForestClassifier
 from imblearn.ensemble import BalancedRandomForestClassifier
+import xgboost as xgb
 
-from scipy.signal import find_peaks
-from statsmodels.tsa.stattools import acf
 
 #import _spectral_features_calculator
 
@@ -526,6 +525,170 @@ class SiMuRModel_RandomForest(object):
     @classmethod
     def get_model_Obj(cls):
         return SiMuRModel_RandomForest
+
+
+# Implementación del modelo XGBoost
+class SiMuRModel_XGBoost(object):
+    def __init__(self, data, params: dict, **kwargs) -> None:
+            
+            #############################################################################
+            # Aquí se tratan los parámetros del modelo. Esto es necesario porque estos modelos contienen muchos hiperparámetros
+            self.num_boost_round = params.get("num_boost_round", 1000)    # Número de estimadores
+            self.max_depth = params.get("max_depth", 10)                  # Profundidad máxima
+            self.learning_rate = params.get("learning_rate", 0.05)        # Tasa de aprendizaje
+            self.subsample = params.get("subsample", 0.70)                # Fracción de muestras por árbol
+            self.colsample_bytree = params.get("colsample_bytree", 0.80)  # Fracción de columnas por árbol
+            self.gamma = params.get("gamma", 4.2)                         # Regularización mínima de pérdida
+            self.min_child_weight = params.get("min_child_weight", 2)     # Peso mínimo de hijos
+            self.reg_alpha = params.get("reg_alpha", 0.6)                 # L1 regularization
+            self.reg_lambda = params.get("reg_lambda", 0.04)              # L2 regularization
+            
+            self.testMetrics = []
+            self.metrics = [accuracy_score, f1_score]
+            #############################################################################
+            # Los datos de entrenamiento vienen en el parametro data:
+            #     - Vienen pre-procesados.
+            #     - data suele ser un objeto o diccionario con:
+            #         data.X_Train
+            #         data.Y_Train
+            #         data.X_Test
+            #         data.Y_Test
+            
+            self.X_train = data.X_train
+        
+            try:
+                self.X_validation = data.X_validation 
+            except:
+                print("Not enough data for validation.")
+                self.X_validation = None 
+                
+            try:      
+                self.X_test = data.X_test
+            except:
+                print("Not enough data for test.")
+                self.X_test = None
+            
+            self.y_train = data.y_train
+            
+            try:
+                self.y_validation = data.y_validation
+            except:
+                print("Not enough data for validation.")
+                self.y_validation = None
+                
+            try:
+                self.y_test = data.y_test
+            except:
+                print("Not enough data for test.")
+                self.y_test = None
+            
+            #############################################################################
+
+            # También se crea el modelo. Si es una red aquí se define el grafo. 
+            # La creación del modelo se encapsula en la función "create_model"
+            # Ejemplo de lectura de parámetros:
+            #    param1 = params.get("N_capas", 3)
+
+            self.model = self.create_model()
+
+            #############################################################################   
+    
+    def create_model(self):
+        # Creamos el modelo de XGBoost, el cual se entrenará con las mismas características definidas para el Random Forest
+        model = xgb.XGBClassifier(use_label_encoder=False, 
+                                  num_boost_round=self.num_boost_round,   # Como parámetros indicamos: el número de estimadores
+                                  max_depth=self.max_depth,               # Profundidad máxima
+                                  learning_rate=self.learning_rate,       # Tasa de aprendizaje
+                                  subsample=self.subsample,               # Fracción de muestras por árbol
+                                  colsample_bytree=self.colsample_bytree, # Fracción de columnas por árbol
+                                  gamma=self.gamma,                       # Regularización mínima de pérdida
+                                  min_child_weight=self.min_child_weight, # Peso mínimo de hijos
+                                  reg_alpha=self.reg_alpha,               # L1 regularization
+                                  reg_lambda=self.reg_lambda,             # L2 regularization
+                                  eval_metric='mlogloss'
+                                  )  
+        return model
+    
+    def train(self):
+        # --- Conversión a DMatrix ---
+        dtrain = xgb.DMatrix(self.X_train, label=self.y_train)            # DMatrix de entrenamiento
+        dval = xgb.DMatrix(self.X_validation, label=self.y_validation)    # DMatrix de validación
+        # --- Parámetros del modelo ---
+        params = {
+            "objective": "multi:softprob",                                # Salida probabilidades multiclase
+            "num_class": len(np.unique(self.y_train)),                    # Número de clases
+            "eval_metric": "mlogloss",                                    # Métrica log-loss multiclase
+            "max_depth": self.max_depth,                                  # Profundidad máxima
+            "learning_rate":self.learning_rate,                           # Tasa de aprendizaje
+            "subsample": self.subsample,                                  # Fracción de muestras por árbol
+            "colsample_bytree": self.colsample_bytree,                    # Fracción de columnas por árbol
+            "gamma": self.gamma,                                          # Regularización mínima de pérdida
+            "min_child_weight": self.min_child_weight,                    # Peso mínimo de hijos
+            "reg_alpha": self.reg_alpha,                                  # L1 regularization
+            "reg_lambda": self.reg_lambda                                 # L2 regularization
+        }
+        # --- Lista de evaluaciones ---
+        evals = [(dtrain, "train"), (dval, "validation")]                 # Conjuntos de evaluación
+        # --- Entrenamiento con early stopping ---
+        self.model = xgb.train(
+            params=params,                               # Parámetros
+            dtrain=dtrain,                               # Datos de entrenamiento
+            num_boost_round=self.num_boost_round,        # Número de estimadores (rondas) en XGBoost
+            evals=evals,                                 # Conjuntos de validación
+            early_stopping_rounds=20                     # Parada temprana (early-stopping)
+        )
+        # --- Predicciones ---
+        y_predicted_probability = self.model.predict(dval)                     # Probabilidades predichas
+        self.y_validation_est = np.argmax(y_predicted_probability, axis=1)     # Clase con mayor probabilidad
+        # --- Métricas ---
+        self.validationMetrics = [
+            accuracy_score(self.y_validation, self.y_validation_est),             # Exactitud
+            f1_score(self.y_validation, self.y_validation_est, average='micro')   # F1 micro
+        ]
+      
+        
+    def predict(self, X):
+        dmatrix = xgb.DMatrix(X)               # Convierte numpy.ndarray a DMatrix
+        y_pred_proba = self.model.predict(dmatrix)  # Obtiene probabilidades o scores
+
+        # Para clasificación multiclase (softprob), devuelve la clase con mayor probabilidad
+        return np.argmax(y_pred_proba, axis=1)
+
+        
+    def store(self, model_id, path):
+        path = os.path.join(path, model_id + ".pkl")
+        # Método para guardar el modelo Random Forest en formato '.pkl'
+        joblib.dump(self.model, path)
+        print("Saved model to disk.")
+        
+        return None
+    
+    
+    def load(self, model_id, path):
+        path = os.path.join(path, model_id + ".pkl")
+        # Método para cargar el modelo Random Forest desde el path indicado
+        self.model = joblib.load(path)
+        print("Loaded model from disk.")
+        
+        return None
+    
+    
+    ##########   MÉTODOS DE LAS CLASES    ##########
+    # Estos métodos se pueden llamar sin instar un objeto de la clase
+    # Ej.: import model; model.get_model_type()
+    
+    @classmethod
+    def get_model_type(cls):
+        return "XGBoost"   # Aquí se puede indicar qué tipo de modelo es: RRNN, keras, scikit-learn, etc.
+    
+    @classmethod
+    def get_model_name(cls):
+        return "SiMuR" # Aquí se puede indicar un ID que identifique el modelo
+    
+    @classmethod
+    def get_model_Obj(cls):
+        return SiMuRModel_XGBoost
+
 
 ##########################################
 # Unit testing
