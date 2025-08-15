@@ -19,9 +19,10 @@
             //"--create-superclasses"
 
             // STEP02: testing
-            "--case-id", "case_18",
-            "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",
-            "--model-id", "RandomForest",
+            "--case-id", "case_16",
+            //"--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",
+            "--case-id-folder", "/media/miguel/Elements/wearablepermed/output",            
+            "--model-id", "ESANN",
             "--training-percent", "70",
             //"--validation-percent", "20",
             //"--create-superclasses"
