@@ -208,7 +208,7 @@ class DataReader(object):
         number_of_keys_test = round(metadata_keys_len * self.p_test)
         metadata_keys_test = metadata_keys[(number_of_keys_train+number_of_keys_validation):(number_of_keys_train+number_of_keys_validation+number_of_keys_test)]
         
-        if modelID == ML_Model.RANDOM_FOREST.value:
+        if modelID == ML_Model.RANDOM_FOREST.value or modelID == ML_Model.XGBOOST.value:
             X_train = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
             X_validation = np.empty((0, datos_input.shape[1]))  # Inicializar vacío con n columnas
             X_test = np.empty((0, datos_input.shape[1]))
@@ -230,7 +230,7 @@ class DataReader(object):
         for i in range(datos_input.shape[0]):
             participant_id_i = metadata_output[i]
             if participant_id_i in metadata_keys_train:
-                if modelID == ML_Model.RANDOM_FOREST.value:
+                if modelID == ML_Model.RANDOM_FOREST.value or modelID == ML_Model.XGBOOST.value:
                     fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
                     X_train = np.vstack([X_train, fila_data])
                 elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
@@ -242,7 +242,7 @@ class DataReader(object):
                 y_train = np.vstack([y_train, label_i])
 
             if participant_id_i in metadata_keys_validation:
-                if modelID == ML_Model.RANDOM_FOREST.value:
+                if modelID == ML_Model.RANDOM_FOREST.value or modelID == ML_Model.XGBOOST.value:
                     fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
                     X_validation = np.vstack([X_validation, fila_data])
                 elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:
@@ -254,7 +254,7 @@ class DataReader(object):
                 y_validation = np.vstack([y_validation, label_i])
                 
             if participant_id_i in metadata_keys_test:
-                if modelID == ML_Model.RANDOM_FOREST.value:
+                if modelID == ML_Model.RANDOM_FOREST.value or modelID == ML_Model.XGBOOST.value:
                     fila_data = datos_input[i, :].reshape(1, -1)  # Asegura forma (1, n)
                     X_test = np.vstack([X_test, fila_data])
                 elif modelID == ML_Model.ESANN.value or modelID == ML_Model.CAPTURE24.value:

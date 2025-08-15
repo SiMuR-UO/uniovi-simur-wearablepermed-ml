@@ -1,1 +1,1 @@
-from .SiMuR_Model import SiMuRModel_ESANN, SiMuRModel_CAPTURE24, SiMuRModel_RandomForest
+from .SiMuR_Model import SiMuRModel_ESANN, SiMuRModel_CAPTURE24, SiMuRModel_RandomForest, SiMuRModel_XGBoost

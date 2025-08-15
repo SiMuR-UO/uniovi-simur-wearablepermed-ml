@@ -1,15 +1,12 @@
 from enum import Enum
+import json
 from data import DataReader
 from models.model_generator import modelGenerator
 from basic_functions.address import *
-import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib import colors
 import seaborn as sns
-from pandas import DataFrame as df
-from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix, ConfusionMatrixDisplay
-from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
 import joblib
 
 class ML_Model(Enum):
@@ -50,42 +47,46 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
 
     if (model_id == ML_Model.ESANN.value):
         test_dataset_path = os.path.join(case_id_folder, "data_all.npz")
-
-        params = {
-            "optimizer": "rmsprop",
-            "miniBatchSize": 10,
-            "lr": 0.00045493796608069996,
-            "N_capas": 2,
-            "activation": "relu",
-            "numFilters": 12,
-            "filterSize": 7
-        }
+        # Ruta al archivo de hiperparámetros guardados
+        hp_json_path = os.path.join(case_id_folder, "mejores_hiperparametros_ESANN.json")
+        # Cargar hiperparámetros desde el archivo JSON
+        with open(hp_json_path, "r") as f:
+            best_hp_values = json.load(f)  # Diccionario: {param: valor}
+    
     elif (model_id == ML_Model.CAPTURE24.value):
         test_dataset_path = os.path.join(case_id_folder, "data_all.npz")
-
-        params = {
-            "optimizer": "rmsprop",
-            "miniBatchSize": 10,
-            "lr": 0.00045493796608069996,
-            "N_capas": 6,
-            "activation": "relu",
-            "numFilters": 12,
-            "filterSize": 7
-        }
+        # Ruta al archivo de hiperparámetros guardados
+        hp_json_path = os.path.join(case_id_folder, "mejores_hiperparametros_CAPTURE24.json")
+        # Cargar hiperparámetros desde el archivo JSON
+        with open(hp_json_path, "r") as f:
+            best_hp_values = json.load(f)  # Diccionario: {param: valor}
+    
     elif (model_id == ML_Model.RANDOM_FOREST.value):
         test_dataset_path = os.path.join(case_id_folder, "data_feature_all.npz")
-
-        params = {
-            "n_estimators": 3000
-        }
+        # Ruta al archivo de hiperparámetros guardados
+        hp_json_path = os.path.join(case_id_folder, "mejores_hiperparametros_BRF.json")
+        # Cargar hiperparámetros desde el archivo JSON
+        with open(hp_json_path, "r") as f:
+            best_hp_values = json.load(f)  # Diccionario: {param: valor}
 
     elif (model_id == ML_Model.XGBOOST.value):
-        raise Exception("Model training not implemented")
+        test_dataset_path = os.path.join(case_id_folder, "data_feature_all.npz")
+        # Ruta al archivo de hiperparámetros guardados
+        hp_json_path = os.path.join(case_id_folder, "mejores_hiperparametros_XGB.json")
+        # Cargar hiperparámetros desde el archivo JSON
+        with open(hp_json_path, "r") as f:
+            best_hp_values = json.load(f)  # Diccionario: {param: valor}
         
     # Testeamos el rendimiento del modelo de clasificación con los DATOS TOTALES
     data = DataReader(modelID=model_id, create_superclasses=create_superclasses, p_train = training_percent, p_validation=validation_percent, file_path=test_dataset_path, label_encoder_path=test_label_encoder_path)
 
-    model = modelGenerator(modelID=model_id, data=data, params=params, debug=False)
+    # Construir modelo usando modelGenerator y los hiperparámetros
+    model = modelGenerator(
+        modelID=model_id,
+        data=data,
+        params=best_hp_values,  # Pasamos directamente el diccionario de hiperparámetros óptimos
+        debug=False
+    )
 
     model.load(model_id, case_id_folder)
 
@@ -100,7 +101,7 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     if (model_id == ML_Model.ESANN.value or model_id == ML_Model.CAPTURE24.value):
         y_final_predicton = np.argmax(y_predicted, axis=1)  # Trabajamos con clasificación multicategoría, no necesario para los bosques aleatorios
     else:
-        y_final_predicton = y_predicted   # esta línea solo es necesaria para los bosques aleatorios
+        y_final_predicton = y_predicted   # esta línea solo es necesaria para los bosques aleatorios y XGBoost
 
     print(model.y_test)
     print(model.y_test.shape)
@@ -141,14 +142,13 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
         f.write(f"Global accuracy score: {acc_score:.4f}\n")
 
     # Obtener todas las clases posibles desde 0 hasta N-1
-    num_classes = len(class_names_total)  # Asegúrate de que contiene TODAS las clases, incluso si no están en y_test
+    num_classes = len(class_names_total)  # Número total de clases
     all_classes = np.arange(num_classes)  # Crea un array con todas las clases (0, 1, 2, ..., N-1)
 
     # Tabla de métricas para cada clase
-    # Save to a file
     classification_per_class_report = classification_report(model.y_test, y_final_predicton, labels=all_classes, target_names=class_names_total, zero_division=0)
     print(classification_per_class_report)        
-
+    # Save to a file
     clasification_per_class_report_path = os.path.join(case_id_folder, "clasification_per_class_report.txt")
     with open(clasification_per_class_report_path, "w") as f:        
         f.write(classification_per_class_report)

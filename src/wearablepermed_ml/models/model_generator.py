@@ -28,21 +28,21 @@ def modelGenerator(modelID: str, data, params:dict={}, verbose=False, debug=Fals
 
     
     # Aquí se llamarían a todos los modelos según su ID
-    # 3 CNNs ESANN
+    # 1. CNN ESANN
     if modelID == "ESANN":
         model = SiMuRModel_ESANN(data, params)
     
-    # 3 CNNs CAPTURE-24
+    # 2. CNN CAPTURE-24
     elif modelID == "CAPTURE24":
         model = SiMuRModel_CAPTURE24(data, params)
     
-    # 3 Random Forests
+    # 3. Random Forest
     elif modelID == "RandomForest":
         model = SiMuRModel_RandomForest(data, params)
 
-    # 4 XGBoost
+    # 4. XGBoost
     elif modelID == "XGBoost":
-        raise Exception("Model not implemented")
+        model = SiMuRModel_XGBoost(data, params)
 
     else:
         model = None
