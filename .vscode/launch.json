@@ -11,20 +11,20 @@
           "program": "${file}",
           "args": [
             // STEP01: training
-            //"--case-id", "case_18",
-            //"--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",            
-            //"--ml-models","RandomForest",
-            //"--training-percent", "70",
-            //"--validation-percent", "20",
-            //"--create-superclasses"
+            "--case-id", "case_19",
+            "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",            
+            "--ml-models","ESANN",
+            "--training-percent", "70",
+            "--validation-percent", "20",
+            "--create-superclasses"
 
             // STEP02: testing
-            "--case-id", "case_18",
-            "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",
-            "--model-id", "RandomForest",
-            "--training-percent", "70",
-            //"--validation-percent", "20",
-            //"--create-superclasses"
+            // "--case-id", "case_19",
+            // "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",
+            // "--model-id", "ESANN",
+            // "--training-percent", "70",
+            // "--validation-percent", "20",
+            // "--create-superclasses"
           ],
           "console": "integratedTerminal"
         }
