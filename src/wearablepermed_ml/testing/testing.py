@@ -15,7 +15,7 @@ class ML_Model(Enum):
     RANDOM_FOREST = 'RandomForest'
     XGBOOST = 'XGBoost'
     
-def tester(case_id_folder, model_id, create_superclasses, training_percent, validation_percent):
+def tester(case_id_folder, model_id, create_superclasses, training_percent, validation_percent, run_index):
     # Cargar el LabelEncoder
     # Ver las clases asociadas a cada número
     test_label_encoder_path = os.path.join(case_id_folder, "label_encoder.pkl")
@@ -45,6 +45,8 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     mapeo = dict(zip(label_encoder.classes_, range(len(label_encoder.classes_))))
     print("Mapeo de etiquetas:", mapeo)
 
+    # Lectura de hiperparámetros óptimos de cada modelo, previamente buscados
+    # ------------------------------------------------------------------------------------
     if (model_id == ML_Model.ESANN.value):
         test_dataset_path = os.path.join(case_id_folder, "data_all.npz")
         # Ruta al archivo de hiperparámetros guardados
@@ -78,7 +80,12 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
             best_hp_values = json.load(f)  # Diccionario: {param: valor}
         
     # Testeamos el rendimiento del modelo de clasificación con los DATOS TOTALES
-    data = DataReader(modelID=model_id, create_superclasses=create_superclasses, p_train = training_percent, p_validation=validation_percent, file_path=test_dataset_path, label_encoder_path=test_label_encoder_path)
+    data = DataReader(modelID=model_id, 
+                      create_superclasses=create_superclasses, 
+                      p_train = training_percent, 
+                      p_validation=validation_percent, 
+                      file_path=test_dataset_path, 
+                      label_encoder_path=test_label_encoder_path)
 
     # Construir modelo usando modelGenerator y los hiperparámetros
     model = modelGenerator(
@@ -118,7 +125,7 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     cm = confusion_matrix(model.y_test, y_final_predicton, labels=all_classes)
 
     # Graficar la matriz de confusión
-    confusion_matrix_test_path = os.path.join(case_id_folder, "confusion_matrix_test.png")
+    confusion_matrix_test_path = os.path.join(case_id_folder, "confusion_matrix_test_"+run_index+".png")
 
     plt.figure(figsize=(10,7))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names_total, yticklabels=class_names_total)
@@ -136,7 +143,7 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     print("Global F1 score = "+str(round(F1_score*100,2))+" [%]")
 
     # Save to a file
-    clasification_global_report_path = os.path.join(case_id_folder, "clasification_global_report.txt")
+    clasification_global_report_path = os.path.join(case_id_folder, "clasification_global_report_"+run_index+".txt")
     with open(clasification_global_report_path, "w") as f:
         f.write(f"Global F1 Score: {F1_score:.4f}\n")
         f.write(f"Global accuracy score: {acc_score:.4f}\n")
@@ -149,6 +156,6 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     classification_per_class_report = classification_report(model.y_test, y_final_predicton, labels=all_classes, target_names=class_names_total, zero_division=0)
     print(classification_per_class_report)        
     # Save to a file
-    clasification_per_class_report_path = os.path.join(case_id_folder, "clasification_per_class_report.txt")
+    clasification_per_class_report_path = os.path.join(case_id_folder, "clasification_per_class_report_"+run_index+".txt")
     with open(clasification_per_class_report_path, "w") as f:        
         f.write(classification_per_class_report)

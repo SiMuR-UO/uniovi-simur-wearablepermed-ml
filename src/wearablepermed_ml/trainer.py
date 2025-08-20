@@ -8,7 +8,6 @@ import numpy as np
 from data import DataReader
 from models.model_generator import modelGenerator
 from basic_functions.address import *
-from tensorflow import keras
 
 import tensorflow as tf
 
