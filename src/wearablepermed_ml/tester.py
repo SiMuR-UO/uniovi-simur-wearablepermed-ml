@@ -75,6 +75,14 @@ def parse_args(args):
         help="Validation percent"
     )
     parser.add_argument(
+        '-run-index',
+        '--run-index',
+        dest='run_index',
+        type=str,
+        default=1,
+        help="Run index of each iteration of the test step."
+    )
+    parser.add_argument(
         "-v",
         "--verbose",
         dest="loglevel",
@@ -121,7 +129,7 @@ def main(args):
     os.makedirs(case_id_folder, exist_ok=True)
 
     _logger.info("Tester starts here")
-    testing.tester(case_id_folder, args.model_id, args.create_superclasses, args.training_percent, args.validation_percent)
+    testing.tester(case_id_folder, args.model_id, args.create_superclasses, args.training_percent, args.validation_percent, args.run_index)
     _logger.info("Script ends here")
 
 def run():
