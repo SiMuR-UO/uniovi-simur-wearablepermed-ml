@@ -6,36 +6,44 @@ import numpy as np                                           # Para operaciones 
 N_RUNS = 30                                                  # Número de ejecuciones de train+test
 
 # Ruta Windows
-case_id_folder = "D:\\DATA_PMP_File_Server\\output"          # Carpeta base de los datos
+# case_id_folder = "D:\\DATA_PMP_File_Server\\output"          # Carpeta base de los datos
 # Ruta Linux
-# case_id_folder = "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output"
+case_id_folder = "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output"
 
-case_id = "case_16"                                          # Identificador del caso
+case_id = "case_19"                                          # Identificador del caso
 
 # Argumentos para el script de entrenamiento
 train_args = [
-    "src\\wearablepermed_ml\\trainer.py",                    # Script de entrenamiento
+    # Ruta Windows
+    # "src\\wearablepermed_ml\\trainer.py",                  # Script de entrenamiento
+    # Ruta Linux                                             
+    "src/wearablepermed_ml/trainer.py",                      # Script de entrenamiento
     "--case-id", case_id,                                    # ID del caso
     "--case-id-folder", case_id_folder,                      # Carpeta de datos
-    "--ml-models", "RandomForest",                           # Modelo ML a usar
+    "--ml-models", "ESANN",                                  # Modelo ML a usar
     "--training-percent", "70",                              # Porcentaje de datos para entrenamiento
+    "--validation-percent", "20",                            # Porcentaje de datos para validación
     "--create-superclasses"                                  # Flag opcional para crear superclases
 ]
 
 # Argumentos para el script de test
 test_args = [
-    "src\\wearablepermed_ml\\tester.py",                     # Script de test
+    # Ruta Windows
+    # "src\\wearablepermed_ml\\tester.py",                     # Script de test
+    # Ruta Linux 
+    "src/wearablepermed_ml/tester.py",                       # Script de test
     "--case-id", case_id,                                    # ID del caso
     "--case-id-folder", case_id_folder,                      # Carpeta de datos
-    "--model-id", "RandomForest",                            # Modelo ML usado para test
+    "--model-id", "ESANN",                                   # Modelo ML usado para test
     "--training-percent", "70",                              # Porcentaje usado en entrenamiento
+    "--validation-percent", "20",                            # Porcentaje de datos para validacións
     "--create-superclasses"                                  # Flag opcional
 ]
 
 # Ruta del ejecutable de Python del entorno virtual (Windows)
-python_exe = os.path.join(".venv", "Scripts", "python.exe")
+# python_exe = os.path.join(".venv", "Scripts", "python.exe")
 # En Linux, será:
-# python_exe = os.path.join(".venv", "bin", "python")
+python_exe = os.path.join(".venv", "bin", "python")
 
 accuracies = []                                              # Lista para almacenar los accuracy de cada ejecución
 
