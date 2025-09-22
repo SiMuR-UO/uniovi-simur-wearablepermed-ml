@@ -4,11 +4,12 @@ import joblib # Librería empleada para guardar y cargar los modelos Random Fore
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
 import tensorflow as tf
-from tensorflow.keras import layers, models
 import keras
 # from sklearn.ensemble import RandomForestClassifier
 from imblearn.ensemble import BalancedRandomForestClassifier
 import xgboost as xgb
+
+from tensorflow.keras import layers, models, optimizers
 
 
 #import _spectral_features_calculator
@@ -209,136 +210,100 @@ class SiMuRModel_ESANN(object):
         return SiMuRModel_ESANN
 
 class SiMuRModel_CAPTURE24(object):
-    def __init__(self, data, params: dict, **kwargs) -> None:
-        
-        #############################################################################
-        # - Hiperparámetros asociados a las opciones de entrenamiento de la CNN
-        self.optimizador = params.get("optimizador", "rmsprop")              # especifica el optimizador a utilizar durante el entrenamiento
-        self.tamanho_minilote = params.get("tamanho_minilote", 10)           # especifica el tamaño del mini-lote
-        self.tasa_aprendizaje = params.get("tasa_aprendizaje", 0.001)        # especifica el learning-rate empleado durante el entrenamiento
-        
-        # - Hiperparámetros asociados a la arquitectura de la red CNN
-        self.N_capas = params.get("N_capas", 6)                                   # especifica el número de capas ocultas de la red
-        self.activacion_capas_ocultas = params.get("funcion_activacion", "relu")  # especifica la función de activación asociada las neuronas de las capas ocultas
-        self.numero_filtros = params.get("numero_filtros", 12)                    # especifica el número de filtros utilizados en las capas ocultas de la red
-        self.tamanho_filtro = params.get("tamanho_filtro", 7)                     # especifica el tamaño de los filtros de las capas ocultas
-        
-        
-        self.testMetrics = []
-        self.metrics = [accuracy_score, f1_score]
-        #############################################################################
-        # Los datos de entrenamiento vienen en el parámetro data:
-        #     - Vienen pre-procesados.
-        #     - data suele ser un objeto o diccionario con:
-        #         data.X_Train
-        #         data.Y_Train
-        #         data.X_Test
-        #         data.Y_Test
-        # El formato del objeto Data puede variar de aplicación en aplicación
-        
+    def __init__(self, data, params: dict):
+        # -----------------------------
+        # Hiperparámetros de entrenamiento
+        self.optimizador = params.get("optimizador", "adam")
+        self.tasa_aprendizaje = params.get("tasa_aprendizaje", 5e-3)  
+        self.tamanho_minilote = params.get("tamanho_minilote", 4)  # batch pequeño
+
+        # -----------------------------
+        # Arquitectura CNN
+        self.N_capas = params.get("N_capas", 3)  # usar 3–4 etapas
+        self.funcion_activacion = params.get("funcion_activacion", "relu")
+        self.numero_filtros = params.get("numero_filtros", 64)
+        self.tamanho_filtro = params.get("tamanho_filtro", 3)
+        self.num_resblocks = params.get("num_resblocks", 1)
+
+        # -----------------------------
+        # Datos
         self.X_train = data.X_train
-        
-        try:
-            self.X_validation = data.X_validation 
-        except:
-            print("Not enough data for validation.")
-            self.X_validation = None 
-            
-        try:      
-            self.X_test = data.X_test
-        except:
-            print("Not enough data for test.")
-            self.X_test = None
-        
         self.y_train = data.y_train
-        
-        try:
-            self.y_validation = data.y_validation
-        except:
-            print("Not enough data for validation.")
-            self.y_validation = None
-            
-        try:
-            self.y_test = data.y_test
-        except:
-            print("Not enough data for test.")
-            self.y_test = None
+        self.X_validation = getattr(data, "X_validation", None)
+        self.y_validation = getattr(data, "y_validation", None)
+        self.X_test = getattr(data, "X_test", None)
+        self.y_test = getattr(data, "y_test", None)
 
-        #############################################################################
-        # También se crea el modelo. Si es una red aquí se define el grafo.
-        # La creación del modelo se encapsula en la función "create_model"
-        # Ejemplo de lectura de parámetros:
-        #    param1 = params.get("N_capas", 3)
+        # -----------------------------
+        # Input shape y clases
+        self.input_shape = (6,250)  # (6, 250)
+        self.num_classes = int(np.max(self.y_train) + 1)
 
-        self.model = self.create_model() 
+        # -----------------------------
+        # Crear modelo
+        self.model = self.create_model()
 
-        #############################################################################
-
-    # Definimos la función de bloque residual (ResBlock)
+    # -----------------------------
+    # Bloque residual
     def ResBlock(self, x, filtros, kernel_size, activation='relu'):
         shortcut = x
         x = layers.Conv1D(filtros, kernel_size, padding='same', activation=activation)(x)
         x = layers.Conv1D(filtros, kernel_size, padding='same')(x)
         x = layers.Add()([x, shortcut])
         x = layers.Activation(activation)(x)
+        x = layers.BatchNormalization()(x)
         return x
 
-    
-    
+    # -----------------------------
+    # Crear modelo
     def create_model(self):
-        self.numClasses = int((max(self.y_train)+1)[0])    # especifica el número de clases
-        
-        #if (self.X_train).shape[1]==12:
-        #    dimension_de_entrada = (12, 250)
-        #elif (self.X_train).shape[1]==6:
-        dimension_de_entrada = (6, 250)
-        
-        # Entrada
-        inputs = layers.Input(shape=dimension_de_entrada)
-
+        inputs = layers.Input(shape=self.input_shape)
         x = inputs
 
+        filtros = self.numero_filtros  # inicializamos filtros
         for i in range(self.N_capas):
-            # Puedes incrementar el número de filtros en cada conjunto, si lo deseas
-            filtros = self.numero_filtros * (2 ** (i // 2))  # Ejemplo: 64, 64, 128, 128, 256, 256, 512, 512, 1024 ...
+            # Reducir dimensionalidad temporal en cada etapa excepto la última
+            stride = 2 if i < self.N_capas - 1 else 1
+            x = layers.Conv1D(filtros, self.tamanho_filtro, strides=stride,
+                            padding='same', activation=self.funcion_activacion)(x)
             
-            # Capa convolucional del conjunto
-            x = layers.Conv1D(filtros, self.tamanho_filtro, strides=1, padding="same", activation=self.activacion_capas_ocultas)(x)
+            # 1 ResBlock por etapa para no saturar memoria
+            for _ in range(self.num_resblocks):
+                x = self.ResBlock(x, filtros, self.tamanho_filtro, self.funcion_activacion)
+            
+            # Solo duplicar filtros si no es la última capa
+            if i < self.N_capas - 1:
+                filtros *= 2
 
-            # 3 ResBlocks por conjunto
-            x = self.ResBlock(x, filtros, self.tamanho_filtro, activation=self.activacion_capas_ocultas)  # ResBlock 1
-            x = self.ResBlock(x, filtros, self.tamanho_filtro, activation=self.activacion_capas_ocultas)  # ResBlock 2
-            x = self.ResBlock(x, filtros, self.tamanho_filtro, activation=self.activacion_capas_ocultas)  # ResBlock 3
-
-        # Global average pooling
+        # Global average pooling para reducir dimensionalidad
         x = layers.GlobalAveragePooling1D()(x)
 
-        # Capa de Dropout
-        x = layers.Dropout(0.5)(x)
+        # Dropout para regularización
+        x = layers.Dropout(0.3)(x)  # menos agresivo que 0.5 para batch pequeño
 
-        # Capa totalmente conectada
-        x = layers.Dense(1024, activation='relu')(x)
+        # Dense intermedio más pequeño para memoria limitada
+        x = layers.Dense(64, activation='relu')(x)
+        x = layers.BatchNormalization()(x)
 
         # Capa de salida
-        outputs = layers.Dense(self.numClasses, activation='softmax')(x)   # 18 clases de actividad física inicialmente
+        outputs = layers.Dense(self.num_classes, activation='softmax')(x)
 
-        # Definimos el modelo
-        model_CNN_CAPTURE24 = models.Model(inputs, outputs)
-
-        if self.optimizador == "adam":
-            optimizer_hyperparameter = tf.keras.optimizers.Adam(learning_rate=self.tasa_aprendizaje)
-        elif self.optimizador == 'rmsprop':
-            optimizer_hyperparameter = tf.keras.optimizers.RMSprop(learning_rate=self.tasa_aprendizaje)
-        elif self.optimizador == 'SGD':
-            optimizer_hyperparameter = tf.keras.optimizers.SGD(learning_rate=self.tasa_aprendizaje)
+        # Optimizer
+        if self.optimizador.lower() == "adam":
+            optimizer = tf.keras.optimizers.Adam(learning_rate=self.tasa_aprendizaje)
+        elif self.optimizador.lower() == "rmsprop":
+            optimizer = tf.keras.optimizers.RMSprop(learning_rate=self.tasa_aprendizaje)
+        elif self.optimizador.lower() == "sgd":
+            optimizer = tf.keras.optimizers.SGD(learning_rate=self.tasa_aprendizaje)
         else:
-            raise
+            raise ValueError(f"Optimizador {self.optimizador} no soportado")
+
+        model = models.Model(inputs, outputs)
+        model.compile(optimizer=optimizer,
+                    loss='sparse_categorical_crossentropy',
+                    metrics=['accuracy'])
         
-        model_CNN_CAPTURE24.compile(optimizer=optimizer_hyperparameter,
-                                    loss='sparse_categorical_crossentropy',
-                                    metrics=['accuracy'])
-        model_CNN_CAPTURE24.summary()
-        return model_CNN_CAPTURE24
+        return model
     
     def train(self, epochs):
         # Se lanza el entrenamiento de los modelos. El código para lanzar el entrenamiento depende mucho del modelo.        
@@ -424,6 +389,7 @@ class SiMuRModel_CAPTURE24(object):
     def get_model_Obj(cls):
         return SiMuRModel_CAPTURE24
 
+
 class SiMuRModel_RandomForest(object):
     def __init__(self, data, params: dict, **kwargs) -> None:
         
@@ -434,6 +400,7 @@ class SiMuRModel_RandomForest(object):
         self.min_samples_split = params.get("min_samples_split", 3)
         self.min_samples_leaf = params.get("min_samples_leaf", 2)
         self.max_features = params.get("max_features", "auto")
+        
         
         self.testMetrics = []
         self.metrics = [accuracy_score, f1_score]
@@ -461,7 +428,6 @@ class SiMuRModel_RandomForest(object):
     def create_model(self):
         # Creamos el modelo de Random Forest con 3000 árboles
         model = BalancedRandomForestClassifier(n_estimators=self.n_estimators, 
-                                               random_state=42, 
                                                n_jobs=-1,                         # n_jobs=-1 utiliza todos los núcleos disponibles para acelerar el entrenamiento
                                                verbose=1, 
                                                max_features=self.max_features, 
@@ -529,7 +495,7 @@ class SiMuRModel_RandomForest(object):
 
 # Implementación del modelo XGBoost
 class SiMuRModel_XGBoost(object):
-    def __init__(self, data, params: dict, **kwargs) -> None:
+    def __init__(self, data, params: dict, seed, **kwargs) -> None:
             
             #############################################################################
             # Aquí se tratan los parámetros del modelo. Esto es necesario porque estos modelos contienen muchos hiperparámetros
@@ -542,6 +508,8 @@ class SiMuRModel_XGBoost(object):
             self.min_child_weight = params.get("min_child_weight", 2)     # Peso mínimo de hijos
             self.reg_alpha = params.get("reg_alpha", 0.6)                 # L1 regularization
             self.reg_lambda = params.get("reg_lambda", 0.04)              # L2 regularization
+            
+            self.seed = seed
             
             self.testMetrics = []
             self.metrics = [accuracy_score, f1_score]
@@ -605,7 +573,10 @@ class SiMuRModel_XGBoost(object):
                                   min_child_weight=self.min_child_weight, # Peso mínimo de hijos
                                   reg_alpha=self.reg_alpha,               # L1 regularization
                                   reg_lambda=self.reg_lambda,             # L2 regularization
-                                  eval_metric='mlogloss'
+                                  eval_metric='mlogloss',
+                                  tree_method="gpu_hist",     # GPU
+                                  predictor="gpu_predictor",   # fuerza GPU
+                                  random_state=self.seed,  # semilla inicial de aleatoriedad
                                   )  
         return model
     

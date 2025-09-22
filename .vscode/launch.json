@@ -11,12 +11,12 @@
           "program": "${file}",
           "args": [
             // STEP01: training
-            "--case-id", "case_final",
+            "--case-id", "cases_dataset_PI/case_PI_CAPTURE24_17_classes",
             "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",            
-            "--ml-models","RandomForest",
+            "--ml-models","CAPTURE24",
             "--training-percent", "70",
-            //"--validation-percent", "20",
-            "--create-superclasses"
+            "--validation-percent", "20",
+            // "--create-superclasses"
 
             // STEP02: testing
             // "--case-id", "case_16",

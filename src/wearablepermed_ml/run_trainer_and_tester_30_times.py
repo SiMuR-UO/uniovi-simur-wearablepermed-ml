@@ -10,7 +10,7 @@ N_RUNS = 30                                                  # Número de ejecuc
 # Ruta Linux
 case_id_folder = "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output"
 
-case_id = "case_19"                                          # Identificador del caso
+case_id = "cases_dataset_PI/case_PI_CAPTURE24_17_classes"                                          # Identificador del caso
 
 # Argumentos para el script de entrenamiento
 train_args = [
@@ -20,10 +20,10 @@ train_args = [
     "src/wearablepermed_ml/trainer.py",                      # Script de entrenamiento
     "--case-id", case_id,                                    # ID del caso
     "--case-id-folder", case_id_folder,                      # Carpeta de datos
-    "--ml-models", "ESANN",                                  # Modelo ML a usar
+    "--ml-models", "CAPTURE24",                                  # Modelo ML a usar
     "--training-percent", "70",                              # Porcentaje de datos para entrenamiento
     "--validation-percent", "20",                            # Porcentaje de datos para validación
-    "--create-superclasses"                                  # Flag opcional para crear superclases
+    # "--create-superclasses"                                  # Flag opcional para crear superclases
 ]
 
 # Argumentos para el script de test
@@ -34,10 +34,10 @@ test_args = [
     "src/wearablepermed_ml/tester.py",                       # Script de test
     "--case-id", case_id,                                    # ID del caso
     "--case-id-folder", case_id_folder,                      # Carpeta de datos
-    "--model-id", "ESANN",                                   # Modelo ML usado para test
+    "--model-id", "CAPTURE24",                                   # Modelo ML usado para test
     "--training-percent", "70",                              # Porcentaje usado en entrenamiento
-    "--validation-percent", "20",                            # Porcentaje de datos para validacións
-    "--create-superclasses"                                  # Flag opcional
+    "--validation-percent", "20",                            # Porcentaje de datos para validaciones
+    # "--create-superclasses"                                  # Flag opcional
 ]
 
 # Ruta del ejecutable de Python del entorno virtual (Windows)

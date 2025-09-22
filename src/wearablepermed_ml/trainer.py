@@ -16,10 +16,11 @@ import json
 
 from ray import tune
 from ray.tune.schedulers import ASHAScheduler
-from ray.tune import TuneConfig
 from ray.air import RunConfig, CheckpointConfig
 from ray.air.config import FailureConfig
 from ray.air import session
+
+from ray.tune.tuner import TuneConfig
 
 from models import SiMuRModel_ESANN, SiMuRModel_CAPTURE24, SiMuRModel_RandomForest, SiMuRModel_XGBoost
 from sklearn.metrics import accuracy_score
@@ -220,7 +221,7 @@ def train_brf_ray_tune(config, model_class, data):
         "max_depth": config["max_depth"],                      # Profundidad máxima de los árboles
         "min_samples_split": config["min_samples_split"],      # Muestras mínimas para dividir un nodo
         "min_samples_leaf": config["min_samples_leaf"],        # Muestras mínimas por hoja
-        "max_features": config["max_features"]                 # Número de características consideradas por división
+        "max_features": config["max_features"],                 # Número de características consideradas por división
     }
     model = model_class(data, params)                          # Instanciar el modelo usando model_class
     model.train()                                              # Entrenar el modelo
@@ -424,16 +425,29 @@ def main(args):
                 # Búsqueda de hiperparámetros óptimos del modelo, implementando el algoritmo ASHA según Ray Tune.
                 # -----------------------------------------------------------------------------------------------
                 # Espacio de búsqueda
+                # search_space = {
+                #     "N_capas": tune.randint(2, 8),                                   # Número de capas entre 2 y 7 (el límite superior es exclusivo)
+                #     "optimizador": tune.choice(["adam", "rmsprop", "sgd"]),          # Algoritmo de optimización a usar
+                #     "funcion_activacion": tune.choice(["relu", "tanh", "sigmoid"]),  # Función de activación en las capas
+                #     "tamanho_minilote": tune.choice([4, 8, 16]),               # Tamaño del minibatch (batch size)
+                #     "numero_filtros": tune.choice([64, 96, 128]),         # Cantidad de filtros para capas convolucionales
+                #     "tamanho_filtro": tune.choice([3, 5, 7]),         # Tamaño del kernel (filtro) en capas convolucionales
+                #     "tasa_aprendizaje": tune.loguniform(1e-4, 1e-1),                 # Tasa de aprendizaje entre 0.0001 y 0.1 (escala logarítmica)
+                #     "epochs": tune.randint(5, 51)                                    # Número de épocas de entrenamiento entre 5 y 50
+                # }
+                
                 search_space = {
-                    "N_capas": tune.randint(2, 8),                                   # Número de capas entre 2 y 7 (el límite superior es exclusivo)
-                    "optimizador": tune.choice(["adam", "rmsprop", "SGD"]),          # Algoritmo de optimización a usar
-                    "funcion_activacion": tune.choice(["relu", "tanh", "sigmoid"]),  # Función de activación en las capas
-                    "tamanho_minilote": tune.choice([10, 17, 24, 31]),               # Tamaño del minibatch (batch size)
-                    "numero_filtros": tune.choice([44, 48, 52, 56, 60, 64]),         # Cantidad de filtros para capas convolucionales
-                    "tamanho_filtro": tune.choice([3, 5, 7, 9, 11, 13, 15]),         # Tamaño del kernel (filtro) en capas convolucionales
-                    "tasa_aprendizaje": tune.loguniform(1e-4, 1e-1),                 # Tasa de aprendizaje entre 0.0001 y 0.1 (escala logarítmica)
-                    "epochs": tune.randint(5, 51)                                    # Número de épocas de entrenamiento entre 5 y 50
+                    "N_capas": tune.randint(2, 5),                     # 2–4 capas
+                    "optimizador": tune.choice(["adam", "rmsprop", "sgd"]),
+                    "funcion_activacion": tune.choice(["relu", "tanh"]),  # activaciones que funcionan mejor en CNN
+                    "tamanho_minilote": tune.choice([2, 4, 6]),        # batch pequeño para memoria limitada
+                    "numero_filtros": tune.choice([32, 48, 64]),      # filtros moderados
+                    "tamanho_filtro": tune.choice([3, 5, 7]),         # tamaño de kernel razonable
+                    "num_resblocks": tune.choice([1, 2]),             # 1 o 2 ResBlocks por etapa
+                    "tasa_aprendizaje": tune.loguniform(1e-4, 5e-4),  # learning rate conservador
+                    "epochs": tune.randint(10, 30)                    # número de epochs moderado
                 }
+
 
                 # Configuración del scheduler
                 scheduler = ASHAScheduler(
@@ -450,28 +464,24 @@ def main(args):
                     model_class=SiMuRModel_CAPTURE24,  # Clase del modelo a usar
                     data=data_tot                      # Conjunto de datos completo que se pasará a cada ejecución de entrenamiento
                 )
-
-                # Crear el tuner
+                
                 tuner = tune.Tuner(
-                    wrapped_train_fn,                                                      # Función de entrenamiento envuelta con parámetros fijos
-                    param_space=search_space,                                              # Espacio de búsqueda de hiperparámetros definido antes
+                    wrapped_train_fn,
+                    param_space=search_space,
                     tune_config=TuneConfig(
-                        scheduler=scheduler,                                               # Scheduler para manejar la parada temprana (ASHAScheduler)
-                        num_samples=20,                                                    # Número de configuraciones (experimentos) a probar
-                        trial_name_creator=lambda trial: f"trial_{trial.trial_id[:5]}",    # Nombre personalizado para cada prueba
-                        trial_dirname_creator=lambda trial: f"dir_{trial.trial_id[:5]}"    # Carpeta personalizada para cada prueba
+                        num_samples=20,
+                        trial_name_creator=lambda trial: f"trial_{trial.trial_id[:5]}",
+                        trial_dirname_creator=lambda trial: f"dir_{trial.trial_id[:5]}",
                     ),
                     run_config=RunConfig(
-                        name="CAPTURE24_hyperparameters_tuning",                           # Nombre general del experimento
-                        storage_path=case_id_folder,                                       # Ruta donde se guardan los resultados y checkpoints
-                        checkpoint_config=CheckpointConfig(num_to_keep=1),                 # Guardar solo el último checkpoint por prueba
-                        failure_config=FailureConfig(fail_fast=False, max_failures=10),    # Permite hasta 10 fallos antes de parar
-                        verbose=2,                                                         # Nivel de detalle en los logs (más detallado)
-                        log_to_file=False                                                  # No guardar logs en archivos (evita problemas con rutas largas)
+                        name="CAPTURE24_hyperparameters_tuning",
+                        storage_path=case_id_folder,
+                        checkpoint_config=CheckpointConfig(num_to_keep=1),
+                        failure_config=FailureConfig(fail_fast=False, max_failures=10),
+                        verbose=2,
+                        log_to_file=False
                     )
                 )
-
-                # Ejecutar búsqueda de hiperparámetros
                 results = tuner.fit()
 
                 # Obtener mejor resultado
@@ -543,7 +553,8 @@ def main(args):
                     "max_depth": tune.choice([5, 10, 15, 20, None]),                        # Profundidad máxima del árbol
                     "min_samples_split": tune.randint(2, 11),                               # Muestras mínimas para dividir un nodo
                     "min_samples_leaf": tune.randint(1, 11),                                # Muestras mínimas por hoja
-                    "max_features": tune.choice([None, "sqrt", "log2"])                     # Número de características por división
+                    "max_features": tune.choice([None, "sqrt", "log2"]),                     # Número de características por división
+                    "random_state": tune.randint(0, 10000)
                 }
 
                 # Configuración del scheduler
@@ -660,7 +671,8 @@ def main(args):
                     "gamma": tune.uniform(0, 5),                           # Regularización mínima de pérdida
                     "min_child_weight": tune.randint(1, 10),               # Peso mínimo de hijos
                     "reg_alpha": tune.uniform(0, 1),                       # L1 regularization
-                    "reg_lambda": tune.uniform(0, 1)                       # L2 regularization
+                    "reg_lambda": tune.uniform(0, 1),                       # L2 regularization
+                    "random_state": tune.randint(0, 10000)
                 }
 
                 # Configuración del scheduler (igual que en RF)
