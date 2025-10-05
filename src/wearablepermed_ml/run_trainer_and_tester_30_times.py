@@ -45,50 +45,85 @@ test_args = [
 # En Linux, será:
 python_exe = os.path.join(".venv", "bin", "python")
 
-accuracies = []                                              # Lista para almacenar los accuracy de cada ejecución
+accuracies = []                                                     # Lista donde se guardarán las accuracy de cada ejecución
+recalls = []                                                        # Lista para los recall capturados
+f1_scores = []                                                      # Lista para los f1-score capturados
 
-for i in range(1, N_RUNS + 1):                               # Bucle principal para N_RUNS ejecuciones
-    print(f"\n=== EJECUCIÓN {i} ===")
+for i in range(1, N_RUNS + 1):                                      # Bucle principal: repite N_RUNS veces
+    print(f"\n=== EJECUCIÓN {i} ===")                               # Indica el número de ejecución actual
 
     # --- TRAIN ---
-    print(f"\n--- TRAIN (ejecución {i}) ---")
-    subprocess.run([python_exe] + train_args, check=True)    # Ejecuta trainer.py y lanza excepción si falla
+    print(f"\n--- TRAIN (ejecución {i}) ---")                       # Mensaje de inicio de entrenamiento
+    subprocess.run([python_exe] + train_args, check=True)           # Ejecuta trainer.py con los argumentos definidos
 
     # --- TEST ---
-    test_args_with_i = test_args + ["--run-index", str(i)]   # Añadimos índice de ejecución al test
-    print(f"\n--- TEST (ejecución {i}) ---")
+    test_args_with_i = test_args + ["--run-index", str(i)]          # Agrega el índice de ejecución al comando de test
+    print(f"\n--- TEST (ejecución {i}) ---")                        # Mensaje de inicio de test
 
-    result = subprocess.run(
-        [python_exe] + test_args_with_i,                     # Ejecuta tester.py
-        check=True,                                          # Lanza excepción si falla
-        capture_output=True,                                 # Captura stdout y stderr
-        text=True                                            # Interpreta la salida como string
+    result = subprocess.run(                                        # Lanza tester.py y captura su salida
+        [python_exe] + test_args_with_i,                            # Comando completo (python + tester.py + args)
+        check=True,                                                 # Si hay error, lanza excepción
+        capture_output=True,                                        # Captura stdout y stderr
+        text=True                                                   # Interpreta la salida como texto (no bytes)
     )
 
-    print(result.stdout)                                     # Imprime la salida completa del test
+    print(result.stdout)                                            # Muestra la salida completa del tester.py
 
-    # Extraer el valor de accuracy usando regex
-    match = re.search(r"Global accuracy score\s*=\s*([0-9.]+)", result.stdout)
-    if match:
-        acc = float(match.group(1))                                 # Convertimos a float
-        accuracies.append(acc)                                      # Guardamos en la lista
-        print(f"Accuracy capturado en la ejecución {i}: {acc} [%]")
+    # --- Extraer métricas ---
+    acc_match = re.search(r"Global accuracy score\s*=\s*([0-9.]+)", result.stdout)  # Busca el accuracy en la salida
+    recall_match = re.search(r"Global recall score\s*=\s*([0-9.]+)", result.stdout)  # Busca el recall
+    f1_match = re.search(r"Global F1[-\s]?score\s*=\s*([0-9.]+)", result.stdout)     # Busca el F1-score (permite F1-score o F1 score)
+
+    if acc_match:                                                   # Si se encontró el accuracy
+        acc = float(acc_match.group(1))                             # Convierte el valor capturado a float
+        accuracies.append(acc)                                      # Lo guarda en la lista
+        print(f"Accuracy capturado en la ejecución {i}: {acc} [%]") # Muestra el valor capturado
     else:
-        print("No se encontró 'Global accuracy score' en la salida de tester.py")
+        print("No se encontró 'Global accuracy score' en la salida de tester.py")  # Aviso si no se encontró
+
+    if recall_match:                                                # Si se encontró el recall
+        rec = float(recall_match.group(1))                          # Convierte a float
+        recalls.append(rec)                                         # Guarda el valor
+        print(f"Recall capturado en la ejecución {i}: {rec} [%]")   # Muestra el valor capturado
+    else:
+        print("No se encontró 'Global recall score' en la salida de tester.py")     # Aviso si falta el dato
+
+    if f1_match:                                                    # Si se encontró el F1-score
+        f1 = float(f1_match.group(1))                               # Convierte a float
+        f1_scores.append(f1)                                        # Guarda el valor
+        print(f"F1-score capturado en la ejecución {i}: {f1} [%]")  # Muestra el valor capturado
+    else:
+        print("No se encontró 'Global F1-score' en la salida de tester.py")         # Aviso si no se encontró
+
 
 # --- RESUMEN FINAL ---
-print("\n=== RESUMEN FINAL ===")
-print("Accuracies:", accuracies)              # Lista completa de accuracies
-if accuracies:
-    print("Media:", np.mean(accuracies))      # Media de los accuracies
-    print("Std:", np.std(accuracies))         # Desviación estándar de los accuracies
+print("\n=== RESUMEN FINAL ===")                                    # Título del resumen
+print("Accuracies:", accuracies)                                    # Muestra lista completa de accuracies
+print("Recalls:", recalls)                                          # Muestra lista de recalls
+print("F1-scores:", f1_scores)                                      # Muestra lista de F1-scores
+
+if accuracies:                                                      # Si hay valores de accuracy
+    print(f"Accuracy mean: {np.mean(accuracies):.4f} | std: {np.std(accuracies):.4f}")  # Calcula y muestra media y std
+if recalls:                                                         # Si hay valores de recall
+    print(f"Recall mean: {np.mean(recalls):.4f} | std: {np.std(recalls):.4f}")          # Calcula y muestra media y std
+if f1_scores:                                                       # Si hay valores de f1
+    print(f"F1 mean: {np.mean(f1_scores):.4f} | std: {np.std(f1_scores):.4f}")          # Calcula y muestra media y std
+
 
 # --- GUARDAR EN .npz ---
-accuracies_test_path = os.path.join(case_id_folder, case_id, "accuracies_test.npz")  # Ruta final del archivo
-np.savez(
-    accuracies_test_path,                               # Guardar en archivo .npz
-    accuracies=accuracies,                              # Lista de accuracies
-    mean=np.mean(accuracies),                           # Media
-    std=np.std(accuracies)                              # Desviación estándar
+accuracies_test_path = os.path.join(case_id_folder, case_id, "metrics_test.npz")    # Ruta final donde guardar el archivo
+
+np.savez(                                                     # Guarda los datos en un archivo comprimido .npz
+    accuracies_test_path,                                     # Nombre/ruta del archivo de salida
+    accuracies=np.array(accuracies),                          # Lista de accuracies
+    recalls=np.array(recalls),                                # Lista de recalls
+    f1_scores=np.array(f1_scores),                            # Lista de F1-scores
+    acc_mean=np.mean(accuracies),                             # Media de accuracy
+    acc_std=np.std(accuracies),                               # Desviación estándar de accuracy
+    rec_mean=np.mean(recalls),                                # Media de recall
+    rec_std=np.std(recalls),                                  # Desviación estándar de recall
+    f1_mean=np.mean(f1_scores),                               # Media de F1-score
+    f1_std=np.std(f1_scores)                                  # Desviación estándar de F1-score
 )
-print("\nResultados guardados en accuracies_test.npz")  # Mensaje final
+
+print(f"\nResultados guardados en {accuracies_test_path}")         # Mensaje final de confirmación
