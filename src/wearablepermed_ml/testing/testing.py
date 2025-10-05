@@ -6,7 +6,7 @@ from basic_functions.address import *
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import accuracy_score, f1_score, classification_report, confusion_matrix
+from sklearn.metrics import accuracy_score, f1_score, recall_score, classification_report, confusion_matrix
 import joblib
 
 class ML_Model(Enum):
@@ -134,28 +134,45 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     plt.title('Confusion Matrix Test')
     plt.savefig(confusion_matrix_test_path, bbox_inches='tight')
 
+    # -------------------------------------------------
     # MÉTRICAS DE TEST GLOBALES
     print("-------------------------------------------------\n")
+
+    # Accuracy
     acc_score = accuracy_score(model.y_test, y_final_predicton)
     print("Global accuracy score = "+str(round(acc_score*100,2))+" [%]")
 
+    # F1 Score
     F1_score = f1_score(model.y_test, y_final_predicton, average='macro')    # revisar las opciones de average
     print("Global F1 score = "+str(round(F1_score*100,2))+" [%]")
+
+    # Recall global
+    recall_score_global = recall_score(model.y_test, y_final_predicton, average='macro')
+    print("Global recall score = "+str(round(recall_score_global*100,2))+" [%]")
 
     # Save to a file
     clasification_global_report_path = os.path.join(case_id_folder, "clasification_global_report_"+run_index+".txt")
     with open(clasification_global_report_path, "w") as f:
         f.write(f"Global F1 Score: {F1_score:.4f}\n")
         f.write(f"Global accuracy score: {acc_score:.4f}\n")
+        f.write(f"Global recall score: {recall_score_global:.4f}\n")
 
+    # -------------------------------------------------
     # Obtener todas las clases posibles desde 0 hasta N-1
     num_classes = len(class_names_total)  # Número total de clases
     all_classes = np.arange(num_classes)  # Crea un array con todas las clases (0, 1, 2, ..., N-1)
 
     # Tabla de métricas para cada clase
-    classification_per_class_report = classification_report(model.y_test, y_final_predicton, labels=all_classes, target_names=class_names_total, zero_division=0)
+    classification_per_class_report = classification_report(
+        model.y_test,
+        y_final_predicton,
+        labels=all_classes,
+        target_names=class_names_total,
+        zero_division=0
+    )
     print(classification_per_class_report)        
-    # Save to a file
+
+    # Save per-class report to a file
     clasification_per_class_report_path = os.path.join(case_id_folder, "clasification_per_class_report_"+run_index+".txt")
     with open(clasification_per_class_report_path, "w") as f:        
         f.write(classification_per_class_report)
