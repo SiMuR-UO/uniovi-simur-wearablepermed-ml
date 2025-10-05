@@ -495,7 +495,7 @@ class SiMuRModel_RandomForest(object):
 
 # Implementación del modelo XGBoost
 class SiMuRModel_XGBoost(object):
-    def __init__(self, data, params: dict, seed, **kwargs) -> None:
+    def __init__(self, data, params: dict, **kwargs) -> None:
             
             #############################################################################
             # Aquí se tratan los parámetros del modelo. Esto es necesario porque estos modelos contienen muchos hiperparámetros
@@ -508,9 +508,7 @@ class SiMuRModel_XGBoost(object):
             self.min_child_weight = params.get("min_child_weight", 2)     # Peso mínimo de hijos
             self.reg_alpha = params.get("reg_alpha", 0.6)                 # L1 regularization
             self.reg_lambda = params.get("reg_lambda", 0.04)              # L2 regularization
-            
-            self.seed = seed
-            
+                        
             self.testMetrics = []
             self.metrics = [accuracy_score, f1_score]
             #############################################################################
@@ -576,7 +574,7 @@ class SiMuRModel_XGBoost(object):
                                   eval_metric='mlogloss',
                                   tree_method="gpu_hist",     # GPU
                                   predictor="gpu_predictor",   # fuerza GPU
-                                  random_state=self.seed,  # semilla inicial de aleatoriedad
+                                  random_state=None  # o simplemente no fijar semilla
                                   )  
         return model
     
@@ -596,7 +594,8 @@ class SiMuRModel_XGBoost(object):
             "gamma": self.gamma,                                          # Regularización mínima de pérdida
             "min_child_weight": self.min_child_weight,                    # Peso mínimo de hijos
             "reg_alpha": self.reg_alpha,                                  # L1 regularization
-            "reg_lambda": self.reg_lambda                                 # L2 regularization
+            "reg_lambda": self.reg_lambda,                                 # L2 regularization
+            "seed": np.random.randint(0, 1000000)  # Semilla aleatoria en cada run
         }
         # --- Lista de evaluaciones ---
         evals = [(dtrain, "train"), (dval, "validation")]                 # Conjuntos de evaluación
