@@ -147,15 +147,15 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     print("Global F1 score = "+str(round(F1_score*100,2))+" [%]")
 
     # Recall global
-    recall_score_global = recall_score(model.y_test, y_final_predicton, average='macro')
-    print("Global recall score = "+str(round(recall_score_global*100,2))+" [%]")
+    # recall_score_global = recall_score(model.y_test, y_final_predicton, average='macro')
+    # print("Global recall score = "+str(round(recall_score_global*100,2))+" [%]")
 
     # Save to a file
     clasification_global_report_path = os.path.join(case_id_folder, "clasification_global_report_"+run_index+".txt")
     with open(clasification_global_report_path, "w") as f:
         f.write(f"Global F1 Score: {F1_score:.4f}\n")
         f.write(f"Global accuracy score: {acc_score:.4f}\n")
-        f.write(f"Global recall score: {recall_score_global:.4f}\n")
+        # f.write(f"Global recall score: {recall_score_global:.4f}\n")
 
     # -------------------------------------------------
     # Obtener todas las clases posibles desde 0 hasta N-1
