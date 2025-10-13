@@ -15,7 +15,7 @@ class ML_Model(Enum):
     RANDOM_FOREST = 'RandomForest'
     XGBOOST = 'XGBoost'
     
-def tester(case_id_folder, model_id, create_superclasses, training_percent, validation_percent, run_index):
+def tester(case_id_folder, model_id, create_superclasses, create_superclasses_CPA_METs, training_percent, validation_percent, run_index):
     # Cargar el LabelEncoder
     # Ver las clases asociadas a cada número
     test_label_encoder_path = os.path.join(case_id_folder, "label_encoder.pkl")
@@ -81,7 +81,8 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
         
     # Testeamos el rendimiento del modelo de clasificación con los DATOS TOTALES
     data = DataReader(modelID=model_id, 
-                      create_superclasses=create_superclasses, 
+                      create_superclasses=create_superclasses,
+                      create_superclasses_CPA_METs = create_superclasses_CPA_METs, 
                       p_train = training_percent, 
                       p_validation=validation_percent, 
                       file_path=test_dataset_path, 

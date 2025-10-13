@@ -123,6 +123,13 @@ def parse_args(args):
         dest="create_superclasses",
         action='store_true',
         help="Create activity superclasses (true/false)."
+    )
+    parser.add_argument(
+        "-create-superclasses-CPA-METs",
+        "--create-superclasses-CPA-METs",
+        dest="create_superclasses_CPA_METs",
+        action='store_true',
+        help="Create activity superclasses (true/false) with the CPA/METs method."
     )          
     parser.add_argument(
         '-training-percent',
@@ -283,8 +290,14 @@ def main(args):
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
             config_file = os.path.join(case_id_folder, CONFIG_FILE)
             
-            data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent, 
-                                  file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
+            data_tot = DataReader(modelID=modelID, 
+                                  create_superclasses=args.create_superclasses, 
+                                  create_superclasses_CPA_METs = args.create_superclasses_CPA_METs,
+                                  p_train = args.training_percent, 
+                                  p_validation = args.validation_percent, 
+                                  file_path=dataset_file, 
+                                  label_encoder_path=label_encoder_file, 
+                                  config_path = config_file)
             
             # Se entrenan y salvan los modelos (fichero .h5).
             # Ruta al archivo de hiperparámetros guardados
@@ -397,8 +410,14 @@ def main(args):
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
             config_file = os.path.join(case_id_folder, CONFIG_FILE)
             
-            data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent, 
-                                  file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
+            data_tot = DataReader(modelID=modelID, 
+                                  create_superclasses=args.create_superclasses, 
+                                  create_superclasses_CPA_METs=args.create_superclasses_CPA_METs,
+                                  p_train = args.training_percent, 
+                                  p_validation = args.validation_percent, 
+                                  file_path=dataset_file, 
+                                  label_encoder_path=label_encoder_file, 
+                                  config_path = config_file)
             
             # Se entrenan y salvan los modelos (fichero .h5).
             # Ruta al archivo de hiperparámetros guardados
@@ -520,8 +539,14 @@ def main(args):
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
             config_file = os.path.join(case_id_folder, CONFIG_FILE)
             
-            data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent,
-                                   file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
+            data_tot = DataReader(modelID=modelID,
+                                  create_superclasses=args.create_superclasses,
+                                  create_superclasses_CPA_METs= args.create_superclasses_CPA_METs,
+                                  p_train = args.training_percent,
+                                  p_validation = args.validation_percent,
+                                  file_path=dataset_file, 
+                                  label_encoder_path=label_encoder_file,
+                                  config_path = config_file)
             
             # Se entrenan y salvan los modelos (fichero .pkl).
             # Ruta al archivo de hiperparámetros guardados
@@ -632,8 +657,14 @@ def main(args):
             label_encoder_file = os.path.join(case_id_folder, LABEL_ENCODER_FILE)
             config_file = os.path.join(case_id_folder, CONFIG_FILE)
             
-            data_tot = DataReader(modelID=modelID, create_superclasses=args.create_superclasses, p_train = args.training_percent, p_validation = args.validation_percent,
-                                   file_path=dataset_file, label_encoder_path=label_encoder_file, config_path = config_file)
+            data_tot = DataReader(modelID=modelID, 
+                                  create_superclasses=args.create_superclasses,
+                                  create_superclasses_CPA_METs = args.create_superclasses_CPA_METs, 
+                                  p_train = args.training_percent,
+                                  p_validation = args.validation_percent,
+                                  file_path=dataset_file,
+                                  label_encoder_path=label_encoder_file,
+                                  config_path = config_file)
             
             # Se entrenan y salvan los modelos (fichero .pkl).
             # Ruta al archivo de hiperparámetros guardados

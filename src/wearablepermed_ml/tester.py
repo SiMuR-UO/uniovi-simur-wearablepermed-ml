@@ -56,7 +56,14 @@ def parse_args(args):
         dest="create_superclasses",
         action='store_true',
         help="Create activity superclasses (true/false)."
-    )    
+    )  
+    parser.add_argument(
+        "-create-superclasses-CPA-METs",
+        "--create-superclasses-CPA-METs",
+        dest="create_superclasses_CPA_METs",
+        action='store_true',
+        help="Create activity superclasses (true/false) with the CPA/METs method."
+    )  
     parser.add_argument(
         '-training-percent',
         '--training-percent',
@@ -129,7 +136,13 @@ def main(args):
     os.makedirs(case_id_folder, exist_ok=True)
 
     _logger.info("Tester starts here")
-    testing.tester(case_id_folder, args.model_id, args.create_superclasses, args.training_percent, args.validation_percent, args.run_index)
+    testing.tester(case_id_folder,
+                   args.model_id,
+                   args.create_superclasses,
+                   args.create_superclasses_CPA_METs,
+                   args.training_percent,
+                   args.validation_percent,
+                   args.run_index)
     _logger.info("Script ends here")
 
 def run():
