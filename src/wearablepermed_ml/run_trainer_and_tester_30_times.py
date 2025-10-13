@@ -71,9 +71,9 @@ for i in range(1, N_RUNS + 1):                                      # Bucle prin
     print(result.stdout)                                            # Muestra la salida completa del tester.py
 
     # --- Extraer métricas ---
-    acc_match = re.search(r"Global accuracy score\s*=\s*([0-9.]+)", result.stdout)  # Busca el accuracy en la salida
+    acc_match = re.search(r"Global accuracy score (test)\s*=\s*([0-9.]+)", result.stdout)  # Busca el accuracy en la salida
     # recall_match = re.search(r"Global recall score\s*=\s*([0-9.]+)", result.stdout)  # Busca el recall
-    f1_match = re.search(r"Global F1[-\s]?score\s*=\s*([0-9.]+)", result.stdout)     # Busca el F1-score (permite F1-score o F1 score)
+    f1_match = re.search(r"Global F1 (test)[-\s]?score\s*=\s*([0-9.]+)", result.stdout)     # Busca el F1-score (permite F1-score o F1 score)
 
     if acc_match:                                                   # Si se encontró el accuracy
         acc = float(acc_match.group(1))                             # Convierte el valor capturado a float
