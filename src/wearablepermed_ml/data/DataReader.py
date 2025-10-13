@@ -108,10 +108,10 @@ def config_participants(config_path, metadata_keys_train, metadata_keys_validati
         f.writelines(new_lines)
 
 def aggregate_superclasses(etiquetas_output):
-    etiquetas_superclase_1 = ['CAMINAR CON LA COMPRA', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR USUAL SPEED', 'CAMINAR ZIGZAG', 'INCREMENTAL CICLOERGOMETRO', 'SUBIR Y BAJAR ESCALERAS']
-    etiquetas_superclase_2 = ['DE PIE BARRIENDO', 'DE PIE DOBLANDO TOALLAS', 'DE PIE MOVIENDO LIBROS', 'DE PIE USANDO PC', 'YOGA']
+    etiquetas_superclase_1 = ['CAMINAR CON LA COMPRA', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR USUAL SPEED', 'CAMINAR ZIGZAG']
+    etiquetas_superclase_2 = ['DE PIE BARRIENDO', 'DE PIE DOBLANDO TOALLAS', 'DE PIE MOVIENDO LIBROS', 'DE PIE USANDO PC', 'YOGA', 'SUBIR Y BAJAR ESCALERAS']
     etiquetas_superclase_3 = ['FASE REPOSO CON K5', 'SENTADO LEYENDO', 'SENTADO USANDO PC', 'SENTADO VIENDO LA TV']
-    etiquetas_superclase_4 = ['TAPIZ RODANTE', 'TROTAR']
+    etiquetas_superclase_4 = ['TAPIZ RODANTE', 'TROTAR', 'INCREMENTAL CICLOERGOMETRO']
 
     for i in range(len(etiquetas_output)):
         if etiquetas_output[i] in etiquetas_superclase_1:
@@ -121,7 +121,7 @@ def aggregate_superclasses(etiquetas_output):
         elif etiquetas_output[i] in etiquetas_superclase_3:
             etiquetas_output[i] = 'SENTADO/REPOSO'
         elif etiquetas_output[i] in etiquetas_superclase_4:
-            etiquetas_output[i] = 'CORRER'
+            etiquetas_output[i] = 'CORRER/PEDALEAR'
     
     return etiquetas_output
 
