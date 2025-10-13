@@ -102,19 +102,22 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     print(model.X_train.shape)
 
     # testing the model
-    y_predicted = model.predict(model.X_test)
+    y_predicted_test = model.predict(model.X_test)
+    y_predicted_train = model.predict(model.X_train)
 
     # get the class with the highest probability
     if (model_id == ML_Model.ESANN.value or model_id == ML_Model.CAPTURE24.value):
-        y_final_predicton = np.argmax(y_predicted, axis=1)  # Trabajamos con clasificación multicategoría, no necesario para los bosques aleatorios
+        y_final_predicton_test = np.argmax(y_predicted_test, axis=1)  # Trabajamos con clasificación multicategoría, no necesario para los bosques aleatorios
+        y_final_predicton_train = np.argmax(y_predicted_train, axis=1)
     else:
-        y_final_predicton = y_predicted   # esta línea solo es necesaria para los bosques aleatorios y XGBoost
+        y_final_predicton_test = y_predicted_test   # esta línea solo es necesaria para los bosques aleatorios y XGBoost
+        y_final_predicton_train = y_predicted_train
 
     print(model.y_test)
     print(model.y_test.shape)
 
-    print(y_predicted)
-    print(y_predicted.shape)
+    print(y_predicted_test)
+    print(y_predicted_test.shape)
 
     # Matriz de confusión
     # Obtener todas las clases posibles desde 0 hasta N-1
@@ -122,7 +125,7 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     all_classes = np.arange(num_classes)  # Crear array con todas las clases (0, 1, 2, ..., N-1)
 
     # Crear la matriz de confusión asegurando que todas las clases están representadas
-    cm = confusion_matrix(model.y_test, y_final_predicton, labels=all_classes)
+    cm = confusion_matrix(model.y_test, y_final_predicton_test, labels=all_classes)
 
     # Graficar la matriz de confusión
     confusion_matrix_test_path = os.path.join(case_id_folder, "confusion_matrix_test_"+run_index+".png")
@@ -139,12 +142,18 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     print("-------------------------------------------------\n")
 
     # Accuracy
-    acc_score = accuracy_score(model.y_test, y_final_predicton)
-    print("Global accuracy score = "+str(round(acc_score*100,2))+" [%]")
+    acc_score_test = accuracy_score(model.y_test, y_final_predicton_test)
+    print("Global accuracy score (test) = "+str(round(acc_score_test*100,2))+" [%]")
+    
+    acc_score_train = accuracy_score(model.y_train, y_final_predicton_train)
+    print("Global accuracy score (train) = "+str(round(acc_score_train*100,2))+" [%]")
 
     # F1 Score
-    F1_score = f1_score(model.y_test, y_final_predicton, average='macro')    # revisar las opciones de average
-    print("Global F1 score = "+str(round(F1_score*100,2))+" [%]")
+    F1_score_test = f1_score(model.y_test, y_final_predicton_test, average='macro')    # revisar las opciones de average
+    print("Global F1 score (test) = "+str(round(F1_score_test*100,2))+" [%]")
+    
+    F1_score_train = f1_score(model.y_train, y_final_predicton_train, average='macro')    # revisar las opciones de average
+    print("Global F1 score (train) = "+str(round(F1_score_train*100,2))+" [%]")
 
     # Recall global
     # recall_score_global = recall_score(model.y_test, y_final_predicton, average='macro')
@@ -153,8 +162,10 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     # Save to a file
     clasification_global_report_path = os.path.join(case_id_folder, "clasification_global_report_"+run_index+".txt")
     with open(clasification_global_report_path, "w") as f:
-        f.write(f"Global F1 Score: {F1_score:.4f}\n")
-        f.write(f"Global accuracy score: {acc_score:.4f}\n")
+        f.write(f"Global F1 Score (test): {F1_score_test:.4f}\n")
+        f.write(f"Global accuracy score (test): {acc_score_test:.4f}\n")
+        f.write(f"Global F1 Score (train): {F1_score_train:.4f}\n")
+        f.write(f"Global accuracy score (train): {acc_score_train:.4f}\n")
         # f.write(f"Global recall score: {recall_score_global:.4f}\n")
 
     # -------------------------------------------------
@@ -165,7 +176,7 @@ def tester(case_id_folder, model_id, create_superclasses, training_percent, vali
     # Tabla de métricas para cada clase
     classification_per_class_report = classification_report(
         model.y_test,
-        y_final_predicton,
+        y_final_predicton_test,
         labels=all_classes,
         target_names=class_names_total,
         zero_division=0
