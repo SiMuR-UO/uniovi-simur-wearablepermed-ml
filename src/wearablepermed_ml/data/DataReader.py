@@ -126,10 +126,10 @@ def aggregate_superclasses(etiquetas_output):
     return etiquetas_output
 
 def aggregate_superclasses_CPA_METs(etiquetas_output):
-    # etiquetas_superclase_1 = ['CAMINAR CON LA COMPRA', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR USUAL SPEED', 'CAMINAR ZIGZAG', 'INCREMENTAL CICLOERGOMETRO', 'SUBIR Y BAJAR ESCALERAS']
-    # etiquetas_superclase_2 = ['DE PIE BARRIENDO', 'DE PIE DOBLANDO TOALLAS', 'DE PIE MOVIENDO LIBROS', 'DE PIE USANDO PC', 'YOGA']
-    # etiquetas_superclase_3 = ['FASE REPOSO CON K5', 'SENTADO LEYENDO', 'SENTADO USANDO PC', 'SENTADO VIENDO LA TV']
-    # etiquetas_superclase_4 = ['TAPIZ RODANTE', 'TROTAR']
+    etiquetas_superclase_1 = ['FASE REPOSO CON K5', 'SENTADO LEYENDO', 'SENTADO USANDO PC', 'SENTADO VIENDO LA TV']
+    etiquetas_superclase_2 = ['YOGA', 'DE PIE DOBLANDO TOALLAS', 'DE PIE USANDO PC', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR ZIGZAG']
+    etiquetas_superclase_3 = ['DE PIE BARRIENDO', 'DE PIE MOVIENDO LIBROS', 'CAMINAR CON LA COMPRA', 'CAMINAR USUAL SPEED', 'SUBIR Y BAJAR ESCALERAS']
+    etiquetas_superclase_4 = ['INCREMENTAL CICLOERGOMETRO', 'TAPIZ RODANTE', 'TROTAR']
 
     for i in range(len(etiquetas_output)):
         if etiquetas_output[i] in etiquetas_superclase_1:
@@ -179,7 +179,7 @@ def rebalanced(data, labels, metadata):
 
     
 class DataReader(object):
-    def __init__(self, modelID, create_superclasses, p_train, p_validation, file_path, label_encoder_path, config_path=None, add_sintetic_data=False):        
+    def __init__(self, modelID, create_superclasses, create_superclasses_CPA_METs, p_train, p_validation, file_path, label_encoder_path, config_path=None, add_sintetic_data=False):        
         self.p_train = p_train / 100
 
         if (p_validation is not None):
@@ -194,12 +194,15 @@ class DataReader(object):
         metadata_output = stack_de_datos_y_etiquetas_PMP_tot[WINDOW_ALL_METADATA]
 
         # X data
-        X = datos_input
+        # X = datos_input
         
         # Creation of Activity Superclasses
         if create_superclasses == True:
             etiquetas_output = aggregate_superclasses(etiquetas_output)
-
+            datos_input, etiquetas_output, metadata_output = rebalanced(datos_input, etiquetas_output, metadata_output)
+            
+        if create_superclasses_CPA_METs == True:
+            etiquetas_output = aggregate_superclasses_CPA_METs(etiquetas_output)
             datos_input, etiquetas_output, metadata_output = rebalanced(datos_input, etiquetas_output, metadata_output)
         
         # y data
