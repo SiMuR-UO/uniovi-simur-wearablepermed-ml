@@ -125,6 +125,24 @@ def aggregate_superclasses(etiquetas_output):
     
     return etiquetas_output
 
+def aggregate_superclasses_CPA_METs(etiquetas_output):
+    # etiquetas_superclase_1 = ['CAMINAR CON LA COMPRA', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR USUAL SPEED', 'CAMINAR ZIGZAG', 'INCREMENTAL CICLOERGOMETRO', 'SUBIR Y BAJAR ESCALERAS']
+    # etiquetas_superclase_2 = ['DE PIE BARRIENDO', 'DE PIE DOBLANDO TOALLAS', 'DE PIE MOVIENDO LIBROS', 'DE PIE USANDO PC', 'YOGA']
+    # etiquetas_superclase_3 = ['FASE REPOSO CON K5', 'SENTADO LEYENDO', 'SENTADO USANDO PC', 'SENTADO VIENDO LA TV']
+    # etiquetas_superclase_4 = ['TAPIZ RODANTE', 'TROTAR']
+
+    for i in range(len(etiquetas_output)):
+        if etiquetas_output[i] in etiquetas_superclase_1:
+            etiquetas_output[i] = 'SEDENTARY'
+        elif etiquetas_output[i] in etiquetas_superclase_2:
+            etiquetas_output[i] = 'LIGHT-INTENSITY'
+        elif etiquetas_output[i] in etiquetas_superclase_3:
+            etiquetas_output[i] = 'MODERATE-INTENSITY'
+        elif etiquetas_output[i] in etiquetas_superclase_4:
+            etiquetas_output[i] = 'VIGOROUS-INTENSITY'
+    
+    return etiquetas_output
+
 def rebalanced(data, labels, metadata):
     # flat three datasets in one dictionary
     grouped = defaultdict(lambda: defaultdict(list))
