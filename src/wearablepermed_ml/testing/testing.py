@@ -104,18 +104,21 @@ def tester(case_id_folder, model_id, create_superclasses, create_superclasses_CP
 
     # testing the model
     y_predicted_train = model.predict(model.X_train)
-    y_predicted_validation = model.predict(model.X_validation)
+    if model.X_validation != None:
+        y_predicted_validation = model.predict(model.X_validation)
     y_predicted_test = model.predict(model.X_test)
 
     # get the class with the highest probability
     if (model_id == ML_Model.ESANN.value or model_id == ML_Model.CAPTURE24.value):
         y_final_prediction_train = np.argmax(y_predicted_train, axis=1)
-        y_final_prediction_validation = np.argmax(y_predicted_validation, axis=1)
+        if model.X_validation != None:
+            y_final_prediction_validation = np.argmax(y_predicted_validation, axis=1)
         y_final_prediction_test = np.argmax(y_predicted_test, axis=1)  # Trabajamos con clasificación multicategoría, no necesario para los bosques aleatorios
 
     else:
         y_final_prediction_train = y_predicted_train
-        y_final_prediction_validation = y_predicted_validation
+        if model.X_validation != None:
+            y_final_prediction_validation = y_predicted_validation
         y_final_prediction_test = y_predicted_test   # esta línea solo es necesaria para los bosques aleatorios y XGBoost
 
 
@@ -151,8 +154,9 @@ def tester(case_id_folder, model_id, create_superclasses, create_superclasses_CP
     acc_score_train = accuracy_score(model.y_train, y_final_prediction_train)
     print("Global accuracy score (train) = "+str(round(acc_score_train*100,2))+" [%]")
     
-    acc_score_validation = accuracy_score(model.y_validation, y_final_prediction_validation)
-    print("Global accuracy score (validation) = "+str(round(acc_score_validation*100,2))+" [%]")
+    if model.X_validation != None:
+        acc_score_validation = accuracy_score(model.y_validation, y_final_prediction_validation)
+        print("Global accuracy score (validation) = "+str(round(acc_score_validation*100,2))+" [%]")
     
     acc_score_test = accuracy_score(model.y_test, y_final_prediction_test)
     print("Global accuracy score (test) = "+str(round(acc_score_test*100,2))+" [%]")
@@ -161,8 +165,9 @@ def tester(case_id_folder, model_id, create_superclasses, create_superclasses_CP
     F1_score_train = f1_score(model.y_train, y_final_prediction_train, average='macro')    # revisar las opciones de average
     print("Global F1 score (train) = "+str(round(F1_score_train*100,2))+" [%]")
     
-    F1_score_validation = f1_score(model.y_validation, y_final_prediction_validation, average='macro')    # revisar las opciones de average
-    print("Global F1 score (validation) = "+str(round(F1_score_validation*100,2))+" [%]")
+    if model.X_validation != None:
+        F1_score_validation = f1_score(model.y_validation, y_final_prediction_validation, average='macro')    # revisar las opciones de average
+        print("Global F1 score (validation) = "+str(round(F1_score_validation*100,2))+" [%]")
     
     F1_score_test = f1_score(model.y_test, y_final_prediction_test, average='macro')    # revisar las opciones de average
     print("Global F1 score (test) = "+str(round(F1_score_test*100,2))+" [%]")
