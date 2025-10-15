@@ -174,8 +174,9 @@ def tester(case_id_folder, model_id, create_superclasses, create_superclasses_CP
     with open(clasification_global_report_path, "w") as f:
         f.write(f"Global F1 Score (train): {F1_score_train:.4f}\n")
         f.write(f"Global accuracy score (train): {acc_score_train:.4f}\n")
-        f.write(f"Global F1 Score (validation): {F1_score_validation:.4f}\n")
-        f.write(f"Global accuracy score (validation): {acc_score_validation:.4f}\n")
+        if model_id in [ML_Model.ESANN, ML_Model.CAPTURE24, ML_Model.XGBOOST]:
+            f.write(f"Global F1 Score (validation): {F1_score_validation:.4f}\n")
+            f.write(f"Global accuracy score (validation): {acc_score_validation:.4f}\n")
         f.write(f"Global F1 Score (test): {F1_score_test:.4f}\n")
         f.write(f"Global accuracy score (test): {acc_score_test:.4f}\n")
         # f.write(f"Global recall score: {recall_score_global:.4f}\n")
