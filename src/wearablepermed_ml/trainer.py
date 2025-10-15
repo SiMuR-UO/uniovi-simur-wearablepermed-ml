@@ -224,42 +224,21 @@ def train_cnn_ray_tune(config, model_class, data):
     session.report({"val_accuracy": float(val_acc)})
     
     
-# def train_brf_ray_tune(config, model_class, data):
-#     params = {                                                 # Extraer hiperparámetros desde config
-#         "n_estimators": config["n_estimators"],                # Número de árboles en el bosque
-#         "max_depth": config["max_depth"],                      # Profundidad máxima de los árboles
-#         "min_samples_split": config["min_samples_split"],      # Muestras mínimas para dividir un nodo
-#         "min_samples_leaf": config["min_samples_leaf"],        # Muestras mínimas por hoja
-#         "max_features": config["max_features"],                 # Número de características consideradas por división
-#     }
-#     model = model_class(data, params)                          # Instanciar el modelo usando model_class
-#     model.train()                                              # Entrenar el modelo
-#     y_pred = model.predict(data.X_test)                        # Predecir sobre conjunto de test
-#     if y_pred.ndim > 1 and y_pred.shape[1] > 1:                # Si devuelve probabilidades, convertir a clases
-#         y_pred = y_pred.argmax(axis=1)
-#     test_acc = accuracy_score(data.y_test, y_pred)             # Calcular precisión
-#     session.report({"test_accuracy": float(test_acc)})         # Reportar precisión a Ray Tune
-
-
 def train_brf_ray_tune(config, model_class, data):
-    params = {
-        "n_estimators": config["n_estimators"],
-        "max_depth": config["max_depth"],
-        "min_samples_split": config["min_samples_split"],
-        "min_samples_leaf": config["min_samples_leaf"],
-        "max_features": config["max_features"],
-        "replacement": True,
-        "n_jobs": -1
+    params = {                                                 # Extraer hiperparámetros desde config
+        "n_estimators": config["n_estimators"],                # Número de árboles en el bosque
+        "max_depth": config["max_depth"],                      # Profundidad máxima de los árboles
+        "min_samples_split": config["min_samples_split"],      # Muestras mínimas para dividir un nodo
+        "min_samples_leaf": config["min_samples_leaf"],        # Muestras mínimas por hoja
+        "max_features": config["max_features"],                 # Número de características consideradas por división
     }
-
-    model = model_class(data, params)
-    model.train()
-    # Evaluar con 5-fold cross-validation sobre el training set
-    scores = cross_val_score(model, data.X_train, data.y_train, cv=5, scoring="accuracy")
-    
-    # Reportar el promedio a Ray Tune
-    session.report(mean_accuracy=np.mean(scores))
-
+    model = model_class(data, params)                          # Instanciar el modelo usando model_class
+    model.train()                                              # Entrenar el modelo
+    y_pred = model.predict(data.X_test)                        # Predecir sobre conjunto de test
+    if y_pred.ndim > 1 and y_pred.shape[1] > 1:                # Si devuelve probabilidades, convertir a clases
+        y_pred = y_pred.argmax(axis=1)
+    test_acc = accuracy_score(data.y_test, y_pred)             # Calcular precisión
+    session.report({"test_accuracy": float(test_acc)})         # Reportar precisión a Ray Tune
     
     
 def train_xgb_ray_tune(config, model_class, data):
@@ -597,10 +576,10 @@ def main(args):
                 # ------------------------------------------------------------------------------------------------------
                 # Espacio de búsqueda
                 search_space = {
-                    "n_estimators": tune.randint(100, 301),                                  # Número de árboles entre 50 y 300
-                    "max_depth": tune.choice([5, 10, 15]),                        # Profundidad máxima del árbol
-                    "min_samples_split": tune.randint(5, 11),                               # Muestras mínimas para dividir un nodo
-                    "min_samples_leaf": tune.randint(2, 6),                                # Muestras mínimas por hoja
+                    "n_estimators": tune.randint(200, 301),                                  # Número de árboles entre 50 y 300
+                    "max_depth": tune.choice([5, 6, 8]),                        # Profundidad máxima del árbol
+                    "min_samples_split": tune.randint(6, 12),                               # Muestras mínimas para dividir un nodo
+                    "min_samples_leaf": tune.randint(4, 8),                                # Muestras mínimas por hoja
                     "max_features": tune.choice(["sqrt", "log2"]),                     # Número de características por división
                     "random_state": tune.randint(0, 10000)
                 }
