@@ -138,7 +138,7 @@ def tester(case_id_folder, model_id, create_superclasses, create_superclasses_CP
     cm = confusion_matrix(model.y_test, y_final_prediction_test, labels=all_classes)
 
     # Graficar la matriz de confusión
-    confusion_matrix_test_path = os.path.join(case_id_folder, "confusion_matrix_test_"+run_index+".png")
+    confusion_matrix_test_path = os.path.join(case_id_folder, "confusion_matrix_test_"+str(run_index)+".png")
 
     plt.figure(figsize=(10,7))
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=class_names_total, yticklabels=class_names_total)
