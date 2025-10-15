@@ -197,6 +197,6 @@ def tester(case_id_folder, model_id, create_superclasses, create_superclasses_CP
     print(classification_per_class_report)        
 
     # Save per-class report to a file
-    clasification_per_class_report_path = os.path.join(case_id_folder, "clasification_per_class_report_"+run_index+".txt")
+    clasification_per_class_report_path = os.path.join(case_id_folder, "clasification_per_class_report_"+str(run_index)+".txt")
     with open(clasification_per_class_report_path, "w") as f:        
         f.write(classification_per_class_report)
