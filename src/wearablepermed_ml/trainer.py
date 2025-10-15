@@ -574,8 +574,8 @@ def main(args):
                 # ------------------------------------------------------------------------------------------------------
                 # Espacio de búsqueda
                 search_space = {
-                    "n_estimators": tune.randint(50, 301),                                  # Número de árboles entre 50 y 300
-                    "max_depth": tune.choice([5, 10, 15, 20, None]),                        # Profundidad máxima del árbol
+                    "n_estimators": tune.randint(100, 301),                                  # Número de árboles entre 50 y 300
+                    "max_depth": tune.choice([5, 10, 15]),                        # Profundidad máxima del árbol
                     "min_samples_split": tune.randint(2, 11),                               # Muestras mínimas para dividir un nodo
                     "min_samples_leaf": tune.randint(1, 11),                                # Muestras mínimas por hoja
                     "max_features": tune.choice([None, "sqrt", "log2"]),                     # Número de características por división
