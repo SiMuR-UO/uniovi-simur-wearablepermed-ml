@@ -170,7 +170,7 @@ def tester(case_id_folder, model_id, create_superclasses, create_superclasses_CP
     # print("Global recall score = "+str(round(recall_score_global*100,2))+" [%]")
 
     # Save to a file
-    clasification_global_report_path = os.path.join(case_id_folder, "clasification_global_report_"+run_index+".txt")
+    clasification_global_report_path = os.path.join(case_id_folder, "clasification_global_report_"+str(run_index)+".txt")
     with open(clasification_global_report_path, "w") as f:
         f.write(f"Global F1 Score (train): {F1_score_train:.4f}\n")
         f.write(f"Global accuracy score (train): {acc_score_train:.4f}\n")
