@@ -8,10 +8,10 @@ N_RUNS = 30                                                  # Número de ejecuc
 # Ruta Windows
 # case_id_folder = "D:\\DATA_PMP_File_Server\\output"          # Carpeta base de los datos
 # Ruta Linux
-# case_id_folder = "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output"
-case_id_folder = "/mnt/simur-fileserver/data/wearablepermed/output"
+case_id_folder = "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output"
+# case_id_folder = "/mnt/simur-fileserver/data/wearablepermed/output"
 
-case_id = "cases_dataset_PI_M/case_PI_M_BRF_superclasses"                                          # Identificador del caso
+case_id = "cases_dataset_PI_M/case_PI_M_BRF_superclasses_activity_intensity/"                                          # Identificador del caso
 
 # Argumentos para el script de entrenamiento
 train_args = [
@@ -24,7 +24,8 @@ train_args = [
     "--ml-models", "RandomForest",                                  # Modelo ML a usar
     "--training-percent", "70",                              # Porcentaje de datos para entrenamiento
     # "--validation-percent", "20",                            # Porcentaje de datos para validación
-    "--create-superclasses"                                  # Flag opcional para crear superclases
+    # "--create-superclasses"                                  # Flag opcional para crear superclases
+    "--create-superclasses-CPA-METs"
 ]
 
 # Argumentos para el script de test
@@ -38,7 +39,8 @@ test_args = [
     "--model-id", "RandomForest",                                   # Modelo ML usado para test
     "--training-percent", "70",                              # Porcentaje usado en entrenamiento
     # "--validation-percent", "20",                            # Porcentaje de datos para validaciones
-    "--create-superclasses"                                  # Flag opcional
+    # "--create-superclasses"                                  # Flag opcional
+    "--create-superclasses-CPA-METs"
 ]
 
 # Ruta del ejecutable de Python del entorno virtual (Windows)
