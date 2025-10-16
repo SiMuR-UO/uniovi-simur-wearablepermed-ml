@@ -1,7 +1,7 @@
-from models import *
-from basic_functions.address import *
+from wearablepermed_ml.models import *
+from wearablepermed_ml.basic_functions.address import *
 import pandas as pd
-from data import DataReader
+from wearablepermed_ml.data import DataReader
 import ast
 
 # Model factory pattern

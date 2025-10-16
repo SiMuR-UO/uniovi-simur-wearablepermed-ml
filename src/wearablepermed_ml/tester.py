@@ -4,7 +4,7 @@ import sys
 import argparse 
 import logging
 
-from testing import testing
+from wearablepermed_ml.testing import testing
 
 __author__ = "Miguel Salinas <uo34525@uniovi.es>, Alejandro <uo265351@uniovi.es>"
 __copyright__ = "Uniovi"

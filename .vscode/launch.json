@@ -10,22 +10,21 @@
           "request": "launch",
           "program": "${file}",
           "args": [
-            // STEP01: training
-            "--case-id", "cases_dataset_PI/case_PI_BRF_superclasses",
-            "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",            
+            // STEP01: training: trainer.py
+            "--case-id", "CASE_21",
+            "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output/table",            
             "--ml-models","RandomForest",
             "--training-percent", "70",
-            // "--validation-percent", "20",
-            "--create-superclasses"
+            //// "--validation-percent", "20",
+            //// "--create-superclasses"
 
-            // STEP02: testing
-            // "--case-id", "case_16",
-            // //"--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output",
-            // "--case-id-folder", "/media/miguel/Elements/wearablepermed/output",            
-            // "--model-id", "ESANN",
-            // "--training-percent", "70",
-            // //"--validation-percent", "20",
-            // //"--create-superclasses"
+            // STEP02: testing: tester.py
+            //"--case-id", "CASE_20",
+            //"--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output/table",
+            //"--model-id", "RandomForest",
+            //"--training-percent", "70",
+            ////"--validation-percent", "20",
+            //"--create-superclasses"
           ],
           "console": "integratedTerminal"
         }

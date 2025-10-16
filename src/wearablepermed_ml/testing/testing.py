@@ -1,8 +1,8 @@
 from enum import Enum
 import json
-from data import DataReader
-from models.model_generator import modelGenerator
-from basic_functions.address import *
+from wearablepermed_ml.data import DataReader
+from wearablepermed_ml.models.model_generator import modelGenerator
+from wearablepermed_ml.basic_functions.address import *
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns

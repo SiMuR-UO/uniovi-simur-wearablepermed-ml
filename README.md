@@ -169,6 +169,7 @@ de clasificación.
      $ tox -e clean
      $ tox -e build
      $ tox -e docs
+     $ tox -e publish -- --repository pypi
      ```
 
 - **STEP02 Build service**

@@ -5,9 +5,9 @@ import logging
 from enum import Enum
 
 import numpy as np
-from data import DataReader
-from models.model_generator import modelGenerator
-from basic_functions.address import *
+from wearablepermed_ml.data import DataReader
+from wearablepermed_ml.models.model_generator import modelGenerator
+from wearablepermed_ml.basic_functions.address import *
 
 import tensorflow as tf
 
@@ -22,7 +22,7 @@ from ray.air import session
 
 from ray.tune.tuner import TuneConfig
 
-from models import SiMuRModel_ESANN, SiMuRModel_CAPTURE24, SiMuRModel_RandomForest, SiMuRModel_XGBoost
+from wearablepermed_ml.models import SiMuRModel_ESANN, SiMuRModel_CAPTURE24, SiMuRModel_RandomForest, SiMuRModel_XGBoost
 from sklearn.metrics import accuracy_score
 
 from sklearn.model_selection import cross_val_score
