@@ -703,8 +703,8 @@ def main(args):
                     "colsample_bytree": tune.uniform(0.5, 1.0),            # Fracción de columnas por árbol
                     "gamma": tune.uniform(0, 5),                           # Regularización mínima de pérdida
                     "min_child_weight": tune.randint(1, 10),               # Peso mínimo de hijos
-                    "reg_alpha": tune.uniform(0, 1),                       # L1 regularization
-                    "reg_lambda": tune.uniform(0, 1),                       # L2 regularization
+                    "reg_alpha": tune.loguniform(1e-3, 10),                       # L1 regularization
+                    "reg_lambda": tune.loguniform(1e-3, 10),                       # L2 regularization
                     "random_state": tune.randint(0, 10000)
                 }
 
