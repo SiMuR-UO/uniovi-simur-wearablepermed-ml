@@ -696,15 +696,15 @@ def main(args):
                 # ------------------------------------------------------------------------------------------------------
                 # Espacio de búsqueda para XGBoost
                 search_space_xgb = {
-                    "num_boost_round": tune.randint(50, 3001),             # Árboles (rondas) de boosting
-                    "max_depth": tune.randint(3, 11),                      # Profundidad máxima
-                    "learning_rate": tune.uniform(0.01, 0.3),              # Tasa de aprendizaje
-                    "subsample": tune.uniform(0.5, 1.0),                   # Fracción de muestras por árbol
-                    "colsample_bytree": tune.uniform(0.5, 1.0),            # Fracción de columnas por árbol
+                    "num_boost_round": tune.randint(100, 1500),             # Árboles (rondas) de boosting
+                    "max_depth": tune.randint(3, 7),                      # Profundidad máxima
+                    "learning_rate": tune.uniform(0.005, 0.1),              # Tasa de aprendizaje
+                    "subsample": tune.uniform(0.5, 0.85),                   # Fracción de muestras por árbol
+                    "colsample_bytree": tune.uniform(0.5, 0.85),            # Fracción de columnas por árbol
                     "gamma": tune.uniform(0, 5),                           # Regularización mínima de pérdida
-                    "min_child_weight": tune.randint(1, 10),               # Peso mínimo de hijos
-                    "reg_alpha": tune.loguniform(1e-3, 10),                       # L1 regularization
-                    "reg_lambda": tune.loguniform(1e-3, 10),                       # L2 regularization
+                    "min_child_weight": tune.randint(1, 30),               # Peso mínimo de hijos
+                    "reg_alpha": tune.loguniform(1e-4, 50),                       # L1 regularization
+                    "reg_lambda": tune.loguniform(1e-4, 50),                       # L2 regularization
                     "random_state": tune.randint(0, 10000)
                 }
 
