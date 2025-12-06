@@ -65,6 +65,13 @@ def parse_args(args):
         help="Create activity superclasses (true/false) with the CPA/METs method."
     )  
     parser.add_argument(
+        "-create-9-superclasses-CAPTURE24",
+        "--create-9-superclasses-CAPTURE24",
+        dest="create_9_superclasses_CAPTURE24",
+        action='store_true',
+        help="Create 9 activity superclasses (true/false) with the CAPTURE24 strategy."
+    )   
+    parser.add_argument(
         '-training-percent',
         '--training-percent',
         dest='training_percent',
@@ -140,6 +147,7 @@ def main(args):
                    args.model_id,
                    args.create_superclasses,
                    args.create_superclasses_CPA_METs,
+                   args.create_9_superclasses_CAPTURE24,
                    args.training_percent,
                    args.validation_percent,
                    args.run_index)

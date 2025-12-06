@@ -127,9 +127,9 @@ def aggregate_superclasses(etiquetas_output):
 
 def aggregate_superclasses_CPA_METs(etiquetas_output):
     etiquetas_superclase_1 = ['FASE REPOSO CON K5', 'SENTADO LEYENDO', 'SENTADO USANDO PC', 'SENTADO VIENDO LA TV']
-    etiquetas_superclase_2 = ['YOGA', 'DE PIE DOBLANDO TOALLAS', 'DE PIE USANDO PC', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR ZIGZAG']
+    etiquetas_superclase_2 = ['DE PIE DOBLANDO TOALLAS', 'DE PIE USANDO PC', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR ZIGZAG']
     etiquetas_superclase_3 = ['DE PIE BARRIENDO', 'DE PIE MOVIENDO LIBROS', 'CAMINAR CON LA COMPRA', 'CAMINAR USUAL SPEED', 'SUBIR Y BAJAR ESCALERAS']
-    etiquetas_superclase_4 = ['INCREMENTAL CICLOERGOMETRO', 'TAPIZ RODANTE', 'TROTAR']
+    etiquetas_superclase_4 = ['INCREMENTAL CICLOERGOMETRO', 'TROTAR']
 
     for i in range(len(etiquetas_output)):
         if etiquetas_output[i] in etiquetas_superclase_1:
@@ -142,6 +142,43 @@ def aggregate_superclasses_CPA_METs(etiquetas_output):
             etiquetas_output[i] = 'VIGOROUS-INTENSITY'
     
     return etiquetas_output
+
+  
+   
+def aggregate_9_superclasses_CAPTURE24(etiquetas_output):
+    etiquetas_superclase_1 = ['CAMINAR CON LA COMPRA', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR USUAL SPEED', 'CAMINAR ZIGZAG']
+    etiquetas_superclase_2 = ['DE PIE BARRIENDO', 'DE PIE MOVIENDO LIBROS']
+    etiquetas_superclase_3 = ['DE PIE DOBLANDO TOALLAS']
+    etiquetas_superclase_4 = ['DE PIE USANDO PC']
+    etiquetas_superclase_5 = ['FASE REPOSO CON K5']
+    etiquetas_superclase_6 = ['INCREMENTAL CICLOERGOMETRO']
+    etiquetas_superclase_7 = ['SENTADO LEYENDO', 'SENTADO USANDO PC', 'SENTADO VIENDO LA TV']
+    etiquetas_superclase_8 = ['SUBIR Y BAJAR ESCALERAS']
+    etiquetas_superclase_9 = ['TROTAR']
+    
+
+    for i in range(len(etiquetas_output)):
+        if etiquetas_output[i] in etiquetas_superclase_1:
+            etiquetas_output[i] = 'WALKING'
+        elif etiquetas_output[i] in etiquetas_superclase_2:
+            etiquetas_output[i] = 'HOUSEHOLD-CHORES'
+        elif etiquetas_output[i] in etiquetas_superclase_3:
+            etiquetas_output[i] = 'MANUAL-WORK'
+        elif etiquetas_output[i] in etiquetas_superclase_4:
+            etiquetas_output[i] = 'STANDING'
+        elif etiquetas_output[i] in etiquetas_superclase_5:
+            etiquetas_output[i] = 'SLEEP'
+        elif etiquetas_output[i] in etiquetas_superclase_6:
+            etiquetas_output[i] = 'BICYCLING'
+        elif etiquetas_output[i] in etiquetas_superclase_7:
+            etiquetas_output[i] = 'SITTING'
+        elif etiquetas_output[i] in etiquetas_superclase_8:
+            etiquetas_output[i] = 'MIXED-ACTIVITY'
+        elif etiquetas_output[i] in etiquetas_superclase_9:
+            etiquetas_output[i] = 'SPORTS'
+    
+    return etiquetas_output
+
 
 def rebalanced(data, labels, metadata):
     # flat three datasets in one dictionary
@@ -179,7 +216,7 @@ def rebalanced(data, labels, metadata):
 
     
 class DataReader(object):
-    def __init__(self, modelID, create_superclasses, create_superclasses_CPA_METs, p_train, p_validation, file_path, label_encoder_path, config_path=None, add_sintetic_data=False):        
+    def __init__(self, modelID, create_superclasses, create_superclasses_CPA_METs, p_train, p_validation, file_path, label_encoder_path, config_path=None, add_sintetic_data=False, create_9_superclasses_CAPTURE24=False):        
         self.p_train = p_train / 100
 
         if (p_validation is not None):
@@ -192,6 +229,11 @@ class DataReader(object):
         datos_input = stack_de_datos_y_etiquetas_PMP_tot[WINDOW_CONCATENATED_DATA]
         etiquetas_output = stack_de_datos_y_etiquetas_PMP_tot[WINDOW_ALL_LABELS]
         metadata_output = stack_de_datos_y_etiquetas_PMP_tot[WINDOW_ALL_METADATA]
+        
+        idx = np.random.permutation(datos_input.shape[0])
+        datos_input = datos_input[idx]
+        etiquetas_output = etiquetas_output[idx]
+        metadata_output = metadata_output[idx]
 
         # X data
         # X = datos_input
@@ -203,6 +245,10 @@ class DataReader(object):
             
         if create_superclasses_CPA_METs == True:
             etiquetas_output = aggregate_superclasses_CPA_METs(etiquetas_output)
+            datos_input, etiquetas_output, metadata_output = rebalanced(datos_input, etiquetas_output, metadata_output)
+            
+        if create_9_superclasses_CAPTURE24 == True:
+            etiquetas_output = aggregate_9_superclasses_CAPTURE24(etiquetas_output)
             datos_input, etiquetas_output, metadata_output = rebalanced(datos_input, etiquetas_output, metadata_output)
         
         # y data

@@ -11,7 +11,7 @@ N_RUNS = 30                                                  # Número de ejecuc
 case_id_folder = "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output"
 # case_id_folder = "/mnt/simur-fileserver/data/wearablepermed/output"
 
-case_id = "cases_dataset_PI_M/case_PI_M_BRF_superclasses_activity_intensity/"                                          # Identificador del caso
+case_id = "Sprint2_Hito1/9_superclases/Modelo_5_BRF_concatenado_MM/"                                         # Identificador del caso
 
 # Argumentos para el script de entrenamiento
 train_args = [
@@ -22,10 +22,11 @@ train_args = [
     "--case-id", case_id,                                    # ID del caso
     "--case-id-folder", case_id_folder,                      # Carpeta de datos
     "--ml-models", "RandomForest",                                  # Modelo ML a usar
-    "--training-percent", "70",                              # Porcentaje de datos para entrenamiento
+    "--training-percent", "80",                              # Porcentaje de datos para entrenamiento
     # "--validation-percent", "20",                            # Porcentaje de datos para validación
-    # "--create-superclasses"                                  # Flag opcional para crear superclases
-    "--create-superclasses-CPA-METs"
+    # "--create-superclasses",                                  # Flag opcional para crear superclases
+    # "--create-superclasses-CPA-METs"
+    "--create-9-superclasses-CAPTURE24"
 ]
 
 # Argumentos para el script de test
@@ -37,10 +38,11 @@ test_args = [
     "--case-id", case_id,                                    # ID del caso
     "--case-id-folder", case_id_folder,                      # Carpeta de datos
     "--model-id", "RandomForest",                                   # Modelo ML usado para test
-    "--training-percent", "70",                              # Porcentaje usado en entrenamiento
+    "--training-percent", "80",                              # Porcentaje usado en entrenamiento
     # "--validation-percent", "20",                            # Porcentaje de datos para validaciones
     # "--create-superclasses"                                  # Flag opcional
-    "--create-superclasses-CPA-METs"
+    # "--create-superclasses-CPA-METs"
+    "--create-9-superclasses-CAPTURE24"
 ]
 
 # Ruta del ejecutable de Python del entorno virtual (Windows)
@@ -73,9 +75,9 @@ for i in range(1, N_RUNS + 1):                                      # Bucle prin
     print(result.stdout)                                            # Muestra la salida completa del tester.py
 
     # --- Extraer métricas ---
-    acc_match = re.search(r"Global accuracy score (test)\s*=\s*([0-9.]+)", result.stdout)  # Busca el accuracy en la salida
+    acc_match = re.search(r"Global\s*accuracy\s*score\s*\(test\)\s*=\s*([0-9.]+)\s*\[%\]", result.stdout)  # Busca el accuracy en la salida
     # recall_match = re.search(r"Global recall score\s*=\s*([0-9.]+)", result.stdout)  # Busca el recall
-    f1_match = re.search(r"Global F1 (test)[-\s]?score\s*=\s*([0-9.]+)", result.stdout)     # Busca el F1-score (permite F1-score o F1 score)
+    f1_match = re.search(r"Global\s*F1\s*score\s*\(test\)\s*=\s*([0-9.]+)\s*\[%\]", result.stdout)     # Busca el F1-score (permite F1-score o F1 score)
 
     if acc_match:                                                   # Si se encontró el accuracy
         acc = float(acc_match.group(1))                             # Convierte el valor capturado a float

@@ -15,7 +15,7 @@ class ML_Model(Enum):
     RANDOM_FOREST = 'RandomForest'
     XGBOOST = 'XGBoost'
     
-def tester(case_id_folder, model_id, create_superclasses, create_superclasses_CPA_METs, training_percent, validation_percent, run_index):
+def tester(case_id_folder, model_id, create_superclasses, create_superclasses_CPA_METs, create_9_superclasses_CAPTURE24, training_percent, validation_percent, run_index):
     # Cargar el LabelEncoder
     # Ver las clases asociadas a cada número
     test_label_encoder_path = os.path.join(case_id_folder, "label_encoder.pkl")
@@ -86,7 +86,8 @@ def tester(case_id_folder, model_id, create_superclasses, create_superclasses_CP
                       p_train = training_percent, 
                       p_validation=validation_percent, 
                       file_path=test_dataset_path, 
-                      label_encoder_path=test_label_encoder_path)
+                      label_encoder_path=test_label_encoder_path,
+                      create_9_superclasses_CAPTURE24=create_9_superclasses_CAPTURE24)
 
     # Construir modelo usando modelGenerator y los hiperparámetros
     model = modelGenerator(

@@ -132,6 +132,13 @@ def parse_args(args):
         dest="create_superclasses_CPA_METs",
         action='store_true',
         help="Create activity superclasses (true/false) with the CPA/METs method."
+    )
+    parser.add_argument(
+        "-create-9-superclasses-CAPTURE24",
+        "--create-9-superclasses-CAPTURE24",
+        dest="create_9_superclasses_CAPTURE24",
+        action='store_true',
+        help="Create 9 activity superclasses (true/false) with the CAPTURE24 strategy."
     )          
     parser.add_argument(
         '-training-percent',
@@ -154,7 +161,8 @@ def parse_args(args):
         '-add-sintetic-data',
         '--add-sintetic-data',
         dest='add_sintetic_data',
-        type=bool,
+        # type=bool,
+        action='store_true',
         default=False,
         help="Add sintetic data for training"
     )     
@@ -327,14 +335,14 @@ def main(args):
                 # -----------------------------------------------------------------------------------------------
                 # Espacio de búsqueda
                 search_space = {
-                    "N_capas": tune.randint(2, 8),                                   # Número de capas entre 2 y 7 (el límite superior es exclusivo)
-                    "optimizador": tune.choice(["adam", "rmsprop", "SGD"]),          # Algoritmo de optimización a usar
-                    "funcion_activacion": tune.choice(["relu", "tanh", "sigmoid"]),  # Función de activación en las capas
-                    "tamanho_minilote": tune.choice([10, 17, 24, 31]),               # Tamaño del minibatch (batch size)
-                    "numero_filtros": tune.choice([12, 16, 20, 24, 28, 30]),         # Cantidad de filtros para capas convolucionales
-                    "tamanho_filtro": tune.choice([3, 5, 7, 9, 11, 13, 15]),         # Tamaño del kernel (filtro) en capas convolucionales
-                    "tasa_aprendizaje": tune.loguniform(1e-4, 1e-1),                 # Tasa de aprendizaje entre 0.0001 y 0.1 (escala logarítmica)
-                    "epochs": tune.randint(5, 51)                                    # Número de épocas de entrenamiento entre 5 y 50
+                    "N_capas": tune.randint(2, 5),                                   # Número de capas entre 2 y 7 (el límite superior es exclusivo)
+                    "optimizador": tune.choice(["adam", "rmsprop"]),          # Algoritmo de optimización a usar
+                    "funcion_activacion": tune.choice(["relu", "tanh"]),  # Función de activación en las capas
+                    "tamanho_minilote": tune.choice([32, 64, 128]),               # Tamaño del minibatch (batch size)
+                    "numero_filtros": tune.choice([32, 64, 128]),         # Cantidad de filtros para capas convolucionales
+                    "tamanho_filtro": tune.choice([3, 5]),         # Tamaño del kernel (filtro) en capas convolucionales
+                    "tasa_aprendizaje": tune.loguniform(1e-5, 5e-3),                 # Tasa de aprendizaje entre 0.0001 y 0.1 (escala logarítmica)
+                    "epochs": tune.randint(50, 150)                                    # Número de épocas de entrenamiento entre 5 y 50
                 }
 
                 # Configuración del scheduler
@@ -458,15 +466,15 @@ def main(args):
                 # }
                 
                 search_space = {
-                    "N_capas": tune.randint(2, 5),                     # 2–4 capas
-                    "optimizador": tune.choice(["adam", "rmsprop", "sgd"]),
+                    "N_capas": tune.randint(2, 4),                     # 2–4 capas
+                    "optimizador": tune.choice(["adam", "rmsprop"]),
                     "funcion_activacion": tune.choice(["relu", "tanh"]),  # activaciones que funcionan mejor en CNN
-                    "tamanho_minilote": tune.choice([2, 4, 6]),        # batch pequeño para memoria limitada
-                    "numero_filtros": tune.choice([32, 48, 64]),      # filtros moderados
-                    "tamanho_filtro": tune.choice([3, 5, 7]),         # tamaño de kernel razonable
-                    "num_resblocks": tune.choice([1, 2]),             # 1 o 2 ResBlocks por etapa
-                    "tasa_aprendizaje": tune.loguniform(1e-4, 5e-4),  # learning rate conservador
-                    "epochs": tune.randint(10, 30)                    # número de epochs moderado
+                    "tamanho_minilote": tune.choice([16, 32]),        # batch pequeño para memoria limitada
+                    "numero_filtros": tune.choice([32, 64, 96]),      # filtros moderados
+                    "tamanho_filtro": tune.choice([3, 5]),         # tamaño de kernel razonable
+                    "num_resblocks": tune.choice([0, 1]),             # 1 o 2 ResBlocks por etapa
+                    "tasa_aprendizaje": tune.loguniform(1e-5, 5e-3),  # learning rate conservador
+                    "epochs": tune.randint(15, 30)                    # número de epochs moderado
                 }
 
 
@@ -548,7 +556,8 @@ def main(args):
                                   p_validation = args.validation_percent,
                                   file_path=dataset_file, 
                                   label_encoder_path=label_encoder_file,
-                                  config_path = config_file)
+                                  config_path = config_file,
+                                  create_9_superclasses_CAPTURE24 = args.create_9_superclasses_CAPTURE24)
             
             # Se entrenan y salvan los modelos (fichero .pkl).
             # Ruta al archivo de hiperparámetros guardados
@@ -576,11 +585,11 @@ def main(args):
                 # ------------------------------------------------------------------------------------------------------
                 # Espacio de búsqueda
                 search_space = {
-                    "n_estimators": tune.randint(200, 301),                                  # Número de árboles entre 50 y 300
-                    "max_depth": tune.choice([5, 6, 8]),                        # Profundidad máxima del árbol
-                    "min_samples_split": tune.randint(8, 15),                               # Muestras mínimas para dividir un nodo
-                    "min_samples_leaf": tune.randint(6, 10),                                # Muestras mínimas por hoja
-                    "max_features": tune.choice(["sqrt", "log2"]),                     # Número de características por división
+                    "n_estimators": tune.randint(200, 500),                                  # Número de árboles entre 50 y 300
+                    "max_depth": tune.choice([4, 5, 6]),                        # Profundidad máxima del árbol
+                    "min_samples_split": tune.randint(40, 100),                               # Muestras mínimas para dividir un nodo
+                    "min_samples_leaf": tune.randint(20, 60),                                # Muestras mínimas por hoja
+                    "max_features": tune.choice(["sqrt", "log2", 0.2]),                     # Número de características por división
                     "random_state": tune.randint(0, 10000)
                 }
 
@@ -696,15 +705,15 @@ def main(args):
                 # ------------------------------------------------------------------------------------------------------
                 # Espacio de búsqueda para XGBoost
                 search_space_xgb = {
-                    "num_boost_round": tune.randint(200, 1000),             # Árboles (rondas) de boosting
-                    "max_depth": tune.randint(2, 5),                      # Profundidad máxima
-                    "learning_rate": tune.uniform(0.01, 0.07),              # Tasa de aprendizaje
-                    "subsample": tune.uniform(0.4, 0.8),                   # Fracción de muestras por árbol
-                    "colsample_bytree": tune.uniform(0.4, 0.8),            # Fracción de columnas por árbol
-                    "gamma": tune.uniform(0, 10),                           # Regularización mínima de pérdida
-                    "min_child_weight": tune.randint(5, 50),               # Peso mínimo de hijos
-                    "reg_alpha": tune.loguniform(0.1, 100),                       # L1 regularization
-                    "reg_lambda": tune.loguniform(0.1, 100),                       # L2 regularization
+                    "num_boost_round": tune.randint(200, 800),             # Árboles (rondas) de boosting
+                    "max_depth": tune.randint(2, 4),                      # Profundidad máxima
+                    "learning_rate": tune.uniform(0.005, 0.02),              # Tasa de aprendizaje
+                    "subsample": tune.uniform(0.5, 0.85),                   # Fracción de muestras por árbol
+                    "colsample_bytree": tune.uniform(0.5, 0.85),            # Fracción de columnas por árbol
+                    "gamma": tune.uniform(5, 30),                           # Regularización mínima de pérdida
+                    "min_child_weight": tune.randint(50, 200),               # Peso mínimo de hijos
+                    "reg_alpha": tune.loguniform(1, 1000),                       # L1 regularization
+                    "reg_lambda": tune.loguniform(5, 1000),                       # L2 regularization
                     "random_state": tune.randint(0, 10000)
                 }
 

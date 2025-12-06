@@ -11,8 +11,8 @@
           "program": "${file}",
           "args": [
             // STEP01: training: trainer.py
-            "--case-id", "CASE_21",
-            "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output/table",            
+            "--case-id", "case_C_M_BRF_acc_gyr_17_classes",
+            "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output/cases_dataset_C_M",            
             "--ml-models","RandomForest",
             "--training-percent", "70",
             //// "--validation-percent", "20",

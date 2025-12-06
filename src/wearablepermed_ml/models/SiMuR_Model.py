@@ -92,7 +92,7 @@ class SiMuRModel_ESANN(object):
         # if (self.X_train).shape[1]==12:
         #     dimension_de_entrada = (12, 250)
         # elif (self.X_train).shape[1]==6:
-        dimension_de_entrada = (6, 250)
+        dimension_de_entrada = (3, 250)
         
         model = models.Sequential()
         model.add(layers.InputLayer(input_shape=dimension_de_entrada))
@@ -102,10 +102,11 @@ class SiMuRModel_ESANN(object):
             filtros = self.numero_filtros
             model.add(layers.Conv1D(filtros, self.tamanho_filtro, padding="causal", activation=self.activacion_capas_ocultas))
             model.add(layers.LayerNormalization())
+            model.add(layers.Dropout(0.6))
 
         # Capas finales fijas
         model.add(layers.GlobalAveragePooling1D())
-        model.add(layers.Dropout(0.2))
+        model.add(layers.Dropout(0.7))
         model.add(layers.Dense(self.numClasses, activation='softmax'))
 
         # Optimizadores
@@ -279,7 +280,7 @@ class SiMuRModel_CAPTURE24(object):
         x = layers.GlobalAveragePooling1D()(x)
 
         # Dropout para regularización
-        x = layers.Dropout(0.3)(x)  # menos agresivo que 0.5 para batch pequeño
+        x = layers.Dropout(0.2)(x)  # menos agresivo que 0.5 para batch pequeño
 
         # Dense intermedio más pequeño para memoria limitada
         x = layers.Dense(64, activation='relu')(x)
