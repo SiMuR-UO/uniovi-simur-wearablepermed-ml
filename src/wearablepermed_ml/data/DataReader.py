@@ -147,8 +147,8 @@ def aggregate_superclasses_CPA_METs(etiquetas_output):
    
 def aggregate_9_superclasses_CAPTURE24(etiquetas_output):
     etiquetas_superclase_1 = ['CAMINAR CON LA COMPRA', 'CAMINAR CON MÓVIL O LIBRO', 'CAMINAR USUAL SPEED', 'CAMINAR ZIGZAG']
-    etiquetas_superclase_2 = ['DE PIE BARRIENDO', 'DE PIE MOVIENDO LIBROS']
-    etiquetas_superclase_3 = ['DE PIE DOBLANDO TOALLAS']
+    etiquetas_superclase_2 = ['DE PIE BARRIENDO', 'DE PIE MOVIENDO LIBROS', 'DE PIE DOBLANDO TOALLAS']
+    # etiquetas_superclase_3 = ['DE PIE DOBLANDO TOALLAS']
     etiquetas_superclase_4 = ['DE PIE USANDO PC']
     etiquetas_superclase_5 = ['FASE REPOSO CON K5']
     etiquetas_superclase_6 = ['INCREMENTAL CICLOERGOMETRO']
@@ -162,8 +162,8 @@ def aggregate_9_superclasses_CAPTURE24(etiquetas_output):
             etiquetas_output[i] = 'WALKING'
         elif etiquetas_output[i] in etiquetas_superclase_2:
             etiquetas_output[i] = 'HOUSEHOLD-CHORES'
-        elif etiquetas_output[i] in etiquetas_superclase_3:
-            etiquetas_output[i] = 'MANUAL-WORK'
+        # elif etiquetas_output[i] in etiquetas_superclase_3:
+        #     etiquetas_output[i] = 'MANUAL-WORK'
         elif etiquetas_output[i] in etiquetas_superclase_4:
             etiquetas_output[i] = 'STANDING'
         elif etiquetas_output[i] in etiquetas_superclase_5:

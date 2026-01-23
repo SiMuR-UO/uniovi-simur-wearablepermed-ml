@@ -89,10 +89,10 @@ class SiMuRModel_ESANN(object):
         # Aquí se define la red, SVC, árbol, etc.
         self.numClasses = int((max(self.y_train)+1)[0])    # especifica el número de clases
 
-        # if (self.X_train).shape[1]==12:
-        #     dimension_de_entrada = (12, 250)
-        # elif (self.X_train).shape[1]==6:
-        dimension_de_entrada = (3, 250)
+        if (self.X_train).shape[1]==6:
+            dimension_de_entrada = (6, 250)
+        elif (self.X_train).shape[1]==3:
+            dimension_de_entrada = (3, 250)
         
         model = models.Sequential()
         model.add(layers.InputLayer(input_shape=dimension_de_entrada))

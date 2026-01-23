@@ -11,7 +11,7 @@ N_RUNS = 30                                                  # Número de ejecuc
 case_id_folder = "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output"
 # case_id_folder = "/mnt/simur-fileserver/data/wearablepermed/output"
 
-case_id = "Sprint2_Hito1/9_superclases/Modelo_5_BRF_concatenado_MM/"                                         # Identificador del caso
+case_id = "RECURADO_DE_DATOS_Paper_results/cases_dataset_C/case_C_CAPTURE24_acc_gyr_superclasses_CPA_METs/"                                         # Identificador del caso
 
 # Argumentos para el script de entrenamiento
 train_args = [
@@ -21,12 +21,12 @@ train_args = [
     "src/wearablepermed_ml/trainer.py",                      # Script de entrenamiento
     "--case-id", case_id,                                    # ID del caso
     "--case-id-folder", case_id_folder,                      # Carpeta de datos
-    "--ml-models", "RandomForest",                                  # Modelo ML a usar
-    "--training-percent", "80",                              # Porcentaje de datos para entrenamiento
-    # "--validation-percent", "20",                            # Porcentaje de datos para validación
+    "--ml-models", "CAPTURE24",                                  # Modelo ML a usar
+    "--training-percent", "70",                              # Porcentaje de datos para entrenamiento
+    "--validation-percent", "20",                            # Porcentaje de datos para validación
     # "--create-superclasses",                                  # Flag opcional para crear superclases
-    # "--create-superclasses-CPA-METs"
-    "--create-9-superclasses-CAPTURE24"
+    "--create-superclasses-CPA-METs"
+    # "--create-9-superclasses-CAPTURE24"
 ]
 
 # Argumentos para el script de test
@@ -37,12 +37,12 @@ test_args = [
     "src/wearablepermed_ml/tester.py",                       # Script de test
     "--case-id", case_id,                                    # ID del caso
     "--case-id-folder", case_id_folder,                      # Carpeta de datos
-    "--model-id", "RandomForest",                                   # Modelo ML usado para test
-    "--training-percent", "80",                              # Porcentaje usado en entrenamiento
-    # "--validation-percent", "20",                            # Porcentaje de datos para validaciones
+    "--model-id", "CAPTURE24",                                   # Modelo ML usado para test
+    "--training-percent", "70",                              # Porcentaje usado en entrenamiento
+    "--validation-percent", "20",                            # Porcentaje de datos para validaciones
     # "--create-superclasses"                                  # Flag opcional
-    # "--create-superclasses-CPA-METs"
-    "--create-9-superclasses-CAPTURE24"
+    "--create-superclasses-CPA-METs"
+    # "--create-9-superclasses-CAPTURE24"
 ]
 
 # Ruta del ejecutable de Python del entorno virtual (Windows)

@@ -11,18 +11,18 @@
           "program": "${file}",
           "args": [
             // STEP01: training: trainer.py
-            "--case-id", "case_C_M_BRF_acc_gyr_17_classes",
-            "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output/cases_dataset_C_M",            
-            "--ml-models","RandomForest",
-            "--training-percent", "70",
+            // "--case-id", "datos_muslo_y_munheca_concatenados",
+            // "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output/RECURADO_DE_DATOS_dataset_para_Miguel",            
+            // "--ml-models","RandomForest",
+            // "--training-percent", "80",
             //// "--validation-percent", "20",
             //// "--create-superclasses"
 
             // STEP02: testing: tester.py
-            //"--case-id", "CASE_20",
-            //"--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output/table",
-            //"--model-id", "RandomForest",
-            //"--training-percent", "70",
+            "--case-id", "datos_muslo_y_munheca_concatenados",
+            "--case-id-folder", "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output/RECURADO_DE_DATOS_dataset_para_Miguel",
+            "--model-id", "RandomForest",
+            "--training-percent", "80",
             ////"--validation-percent", "20",
             //"--create-superclasses"
           ],
