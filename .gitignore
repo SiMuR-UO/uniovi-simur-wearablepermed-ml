@@ -53,7 +53,5 @@ MANIFEST
 .conda*/
 .python-version
 
-#participants.json
-
 datos
 log*
