@@ -237,7 +237,11 @@ class SiMuRModel_CAPTURE24(object):
 
         # -----------------------------
         # Input shape y clases
-        self.input_shape = (6,250)  # (6, 250)
+        if (self.X_train).shape[1]==6:
+            self.input_shape = (6, 250)
+        elif (self.X_train).shape[1]==3:
+            self.input_shape = (3, 250)
+        # self.input_shape = (6,250)  # (6, 250)
         self.num_classes = int(np.max(self.y_train) + 1)
 
         # -----------------------------

@@ -1,6 +1,8 @@
 import os                                                    # Para manejar rutas de archivos
 import subprocess                                            # Para ejecutar scripts Python como procesos separados
-import re                                                    # Para expresiones regulares, usado para extraer accuracy
+import argparse
+import re
+import sys                                                    # Para expresiones regulares, usado para extraer accuracy
 import numpy as np                                           # Para operaciones numéricas y guardar resultados
 
 N_RUNS = 30                                                  # Número de ejecuciones de train+test
@@ -14,9 +16,7 @@ case_id_folder = "/mnt/nvme1n2/git/uniovi-simur-wearablepermed-data/output"
 case_id = "RECURADO_DE_DATOS_Paper_results/cases_dataset_C/case_C_CAPTURE24_acc_gyr_superclasses_CPA_METs/"                                         # Identificador del caso
 
 # Argumentos para el script de entrenamiento
-train_args = [
-    # Ruta Windows
-    # "src\\wearablepermed_ml\\trainer.py",                  # Script de entrenamiento
+args_model = [
     # Ruta Linux                                             
     "src/wearablepermed_ml/trainer.py",                      # Script de entrenamiento
     "--case-id", case_id,                                    # ID del caso
@@ -25,22 +25,6 @@ train_args = [
     "--training-percent", "70",                              # Porcentaje de datos para entrenamiento
     "--validation-percent", "20",                            # Porcentaje de datos para validación
     # "--create-superclasses",                                  # Flag opcional para crear superclases
-    "--create-superclasses-CPA-METs"
-    # "--create-9-superclasses-CAPTURE24"
-]
-
-# Argumentos para el script de test
-test_args = [
-    # Ruta Windows
-    # "src\\wearablepermed_ml\\tester.py",                     # Script de test
-    # Ruta Linux 
-    "src/wearablepermed_ml/tester.py",                       # Script de test
-    "--case-id", case_id,                                    # ID del caso
-    "--case-id-folder", case_id_folder,                      # Carpeta de datos
-    "--model-id", "CAPTURE24",                                   # Modelo ML usado para test
-    "--training-percent", "70",                              # Porcentaje usado en entrenamiento
-    "--validation-percent", "20",                            # Porcentaje de datos para validaciones
-    # "--create-superclasses"                                  # Flag opcional
     "--create-superclasses-CPA-METs"
     # "--create-9-superclasses-CAPTURE24"
 ]
@@ -54,15 +38,99 @@ accuracies = []                                                     # Lista dond
 # recalls = []                                                        # Lista para los recall capturados
 f1_scores = []                                                      # Lista para los f1-score capturados
 
+def parse_args(args):
+    """Parse command line parameters
+
+    Args:hip
+      args (List[str]): command line parameters as list of strings
+          (for example  ``["--help"]``).
+
+    Returns:
+      :obj:`argparse.Namespace`: command line parameters namespace
+    """
+    parser = argparse.ArgumentParser(description="WareablePerMed Pipeline")
+
+    parser.add_argument(
+        "-file",
+        "--file",
+        dest="file",
+        required=True,
+        help="File: training or test file."
+    )
+
+    parser.add_argument(
+        "-case-id",
+        "--case-id",
+        dest="case_id",
+        required=True,
+        help="Case ID."
+    )
+
+    parser.add_argument(
+        "-case-id-folder",
+        "--case-id-folder",
+        dest="case_id_folder",
+        required=True,
+        help="Case ID Folder."
+    )
+
+    parser.add_argument(
+        "-model-id",
+        "--model-id",
+        dest="model_id",
+        required=True,
+        help="Model ID."
+    )
+
+    parser.add_argument(
+        "-training-percent",
+        "--training-percent",
+        dest="training_percent",
+        required=True,
+        type=int,
+        help="Training Percent."
+    )
+
+    parser.add_argument(
+        "-validation-percent",
+        "--validation-percent",
+        dest="validation_percent",
+        type=int,
+        help="Validation Percent."
+    )
+
+    parser.add_argument(
+        "-create-superclasses-CPA-METs",
+        "--create-superclasses-CPA-METs",
+        dest="create_superclasses_CPA_METs",
+        action='store_true',
+        help="create superclasses CPA METs.")    
+    
+    return parser.parse_args(args)
+
+args = parse_args(sys.argv[1:])
+
+model_args = [
+    args.file,                                       # Script de entrenamiento o test
+    "--case-id", args.case_id,                       # Modelo ML a usar
+    "--case-id-folder", args.case_id_folder,         # Carpeta de datos
+    "--ml-models", args.ml_models,                   # Modelo ML a usar
+    "--training-percent", args.training_percent,     # Porcentaje de datos para entrenamiento
+    "--validation-percent", args.validation_percent  # Porcentaje de datos para validación   
+]
+
+if args.create_superclasses_CPA_METs == True:
+    model_args.append("--create-superclasses-CPA-METs" )
+
 for i in range(1, N_RUNS + 1):                                      # Bucle principal: repite N_RUNS veces
     print(f"\n=== EJECUCIÓN {i} ===")                               # Indica el número de ejecución actual
 
     # --- TRAIN ---
     print(f"\n--- TRAIN (ejecución {i}) ---")                       # Mensaje de inicio de entrenamiento
-    subprocess.run([python_exe] + train_args, check=True)           # Ejecuta trainer.py con los argumentos definidos
+    subprocess.run([python_exe] + model_args, check=True)           # Ejecuta trainer.py con los argumentos definidos
 
     # --- TEST ---
-    test_args_with_i = test_args + ["--run-index", str(i)]          # Agrega el índice de ejecución al comando de test
+    test_args_with_i = model_args + ["--run-index", str(i)]          # Agrega el índice de ejecución al comando de test
     print(f"\n--- TEST (ejecución {i}) ---")                        # Mensaje de inicio de test
 
     result = subprocess.run(                                        # Lanza tester.py y captura su salida
@@ -99,7 +167,6 @@ for i in range(1, N_RUNS + 1):                                      # Bucle prin
         print(f"F1-score capturado en la ejecución {i}: {f1} [%]")  # Muestra el valor capturado
     else:
         print("No se encontró 'Global F1-score' en la salida de tester.py")         # Aviso si no se encontró
-
 
 # --- RESUMEN FINAL ---
 print("\n=== RESUMEN FINAL ===")                                    # Título del resumen
