@@ -97,6 +97,14 @@ def parse_args(args):
     """
     parser = argparse.ArgumentParser(description="Machine Learning Model Trainer")
     parser.add_argument(
+        '-run-index',
+        '--run-index',
+        dest='run_index',
+        type=str,
+        default=1,
+        help="Run index of each iteration of the test step."
+    )
+    parser.add_argument(
         "-case-id",
         "--case-id",
         dest="case_id",
@@ -577,7 +585,7 @@ def main(args):
                 # Entrenar el modelo con todos los datos
                 model_RandomForest_data_tot.train()
                 # Guardar los pesos del modelo en formato .weights.h5
-                model_RandomForest_data_tot.store(modelID, case_id_folder)
+                model_RandomForest_data_tot.store(modelID, case_id_folder, args.run_index)
             else:
                 print(f"Se lanza la búsqueda de hiperparámetros óptimos del modelo")       
                 # ------------------------------------------------------------------------------------------------------

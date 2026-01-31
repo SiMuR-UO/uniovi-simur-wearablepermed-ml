@@ -463,8 +463,8 @@ class SiMuRModel_RandomForest(object):
         
         return self.model.predict(X)
         
-    def store(self, model_id, path):
-        path = os.path.join(path, model_id + ".pkl")
+    def store(self, model_id, path, run_index):
+        path = os.path.join(path, model_id + "_" + run_index + ".pkl")
 
         # Método para guardar el modelo Random Forest en formato '.pkl'
         joblib.dump(self.model, path)
