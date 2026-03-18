@@ -13,6 +13,8 @@ Incluye:
 - Exportación de resultados
 """
 
+import os
+
 import pandas as pd
 import numpy as np
 import statsmodels.api as sm
@@ -25,8 +27,13 @@ from itertools import combinations
 # =========================================================
 # 1. Cargar vectores F1 y archivo meta (48 filas)
 # =========================================================
-# Sustituye estos paths por los tuyos reales:
-f1_vectors = np.load('f1_vectors_48x30.npy', allow_pickle=True)  # matriz 48×30
+
+# Compute the REAL path of the .py script
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Build the full path of the .npy file
+output_path = os.path.join(script_dir, "f1_vectors_48x30.npy")
+
+f1_vectors = np.load(output_path, allow_pickle=True)  # matrix 48×30
 meta = pd.read_csv('meta_48_experimentos.csv')
 
 assert len(f1_vectors) == len(meta) == 48, "Los 48 vectores deben coincidir con las 48 filas de meta."
