@@ -1,0 +1,49 @@
+Modelo,Sensor,Config,NumClases
+Random Forest,T,Acc,15
+Random Forest,W,Acc,15
+Random Forest,H,Acc,15
+Random Forest,T,Acc+Gyro,15
+Random Forest,W,Acc+Gyro,15
+Random Forest,H,Acc+Gyro,15
+Random Forest,T,Acc,4
+Random Forest,W,Acc,4
+Random Forest,H,Acc,4
+Random Forest,T,Acc+Gyro,4
+Random Forest,W,Acc+Gyro,4
+Random Forest,H,Acc+Gyro,4
+XGBoost,T,Acc,15
+XGBoost,W,Acc,15
+XGBoost,H,Acc,15
+XGBoost,T,Acc+Gyro,15
+XGBoost,W,Acc+Gyro,15
+XGBoost,H,Acc+Gyro,15
+XGBoost,T,Acc,4
+XGBoost,W,Acc,4
+XGBoost,H,Acc,4
+XGBoost,T,Acc+Gyro,4
+XGBoost,W,Acc+Gyro,4
+XGBoost,H,Acc+Gyro,4
+CNN ESANN,T,Acc,15
+CNN ESANN,W,Acc,15
+CNN ESANN,H,Acc,15
+CNN ESANN,T,Acc+Gyro,15
+CNN ESANN,W,Acc+Gyro,15
+CNN ESANN,H,Acc+Gyro,15
+CNN ESANN,T,Acc,4
+CNN ESANN,W,Acc,4
+CNN ESANN,H,Acc,4
+CNN ESANN,T,Acc+Gyro,4
+CNN ESANN,W,Acc+Gyro,4
+CNN ESANN,H,Acc+Gyro,4
+CNN CAPTURE-24,T,Acc,15
+CNN CAPTURE-24,W,Acc,15
+CNN CAPTURE-24,H,Acc,15
+CNN CAPTURE-24,T,Acc+Gyro,15
+CNN CAPTURE-24,W,Acc+Gyro,15
+CNN CAPTURE-24,H,Acc+Gyro,15
+CNN CAPTURE-24,T,Acc,4
+CNN CAPTURE-24,W,Acc,4
+CNN CAPTURE-24,H,Acc,4
+CNN CAPTURE-24,T,Acc+Gyro,4
+CNN CAPTURE-24,W,Acc+Gyro,4
+CNN CAPTURE-24,H,Acc+Gyro,4
