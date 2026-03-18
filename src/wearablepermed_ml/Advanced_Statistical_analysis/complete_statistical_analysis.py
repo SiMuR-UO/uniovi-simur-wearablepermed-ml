@@ -31,10 +31,11 @@ from itertools import combinations
 # Compute the REAL path of the .py script
 script_dir = os.path.dirname(os.path.abspath(__file__))
 # Build the full path of the .npy file
-output_path = os.path.join(script_dir, "f1_vectors_48x30.npy")
+f1_vectors_path = os.path.join(script_dir, "f1_vectors_48x30.npy")
+meta_48_experiments_path = os.path.join(script_dir, "meta_48_experimentos.csv")
 
-f1_vectors = np.load(output_path, allow_pickle=True)  # matrix 48×30
-meta = pd.read_csv('meta_48_experimentos.csv')
+f1_vectors = np.load(f1_vectors_path, allow_pickle=True)  # matrix 48×30
+meta = pd.read_csv(meta_48_experiments_path)
 
 assert len(f1_vectors) == len(meta) == 48, "Los 48 vectores deben coincidir con las 48 filas de meta."
 
@@ -65,10 +66,16 @@ for col in ['Modelo', 'Sensor', 'Config', 'NumClases']:
 # =========================================================
 # 3. ANOVA factorial completo (typ=3)
 # =========================================================
-formula = 'F1 ~ C(Modelo) * C(Sensor) * C(Config) * C(NumClases)'
+formula = 'F1 ~ C(Modelo) + C(Sensor) + C(Config) + C(NumClases) \
+           + C(Modelo):C(Sensor) \
+           + C(Modelo):C(Config) \
+           + C(Modelo):C(NumClases) \
+           + C(Sensor):C(Config) \
+           + C(Sensor):C(NumClases) \
+           + C(Config):C(NumClases)'
 modelo = ols(formula, data=df).fit()
 anova = sm.stats.anova_lm(modelo, typ=3)
-anova.to_csv('ANOVA_typ3.csv')
+anova.to_csv(os.path.join(script_dir,'ANOVA_typ3.csv'))
 print("ANOVA completado. Guardado en ANOVA_typ3.csv")
 
 # =========================================================
@@ -77,14 +84,14 @@ print("ANOVA completado. Guardado en ANOVA_typ3.csv")
 residuos = modelo.resid
 W, p = shapiro(residuos)
 print(f"Shapiro–Wilk: W={W:.4f}, p={p:.4g}")
-with open('shapiro_residuos.txt','w') as f:
+with open(os.path.join(script_dir,'shapiro_residuos.txt'),'w') as f:
     f.write(f"Shapiro–Wilk W={W}, p={p}\n")
 
 # QQ-Plot
 fig = sm.qqplot(residuos, line='45', fit=True)
 plt.title('Q–Q plot de residuos')
 plt.tight_layout()
-plt.savefig('QQplot_residuos.png')
+plt.savefig(os.path.join(script_dir,'QQplot_residuos.png'))
 plt.close()
 
 # =========================================================
@@ -99,7 +106,7 @@ for fac in ['Modelo','Sensor','Config','NumClases']:
     stat, p = levene_by(df, fac)
     homoced[fac] = (stat, p)
 
-pd.DataFrame.from_dict(homoced, orient='index', columns=['stat','p']).to_csv('homogeneidad_brown_forsythe.csv')
+pd.DataFrame.from_dict(homoced, orient='index', columns=['stat','p']).to_csv(os.path.join(script_dir,'homogeneidad_brown_forsythe.csv'))
 print("Tests de homogeneidad guardados.")
 
 # =========================================================
@@ -135,7 +142,7 @@ emms = {}
 for target in factors:
     others = [f for f in factors if f != target]
     emms[target] = emms_for_factor(modelo, df, target, others)
-    emms[target].to_csv(f'EMM_{target}.csv', index=False)
+    emms[target].to_csv(os.path.join(script_dir,f'EMM_{target}.csv'), index=False)
 
 print("EMMs calculados y guardados.")
 
@@ -151,7 +158,7 @@ for sensor_nivel, sub in df.groupby('Sensor'):
     resultados_simple.append(out)
 
 ef_simple_df = pd.concat(resultados_simple, ignore_index=True)
-ef_simple_df.to_csv('EfectosSimples_Modelo_en_Sensor_Tukey.csv', index=False)
+ef_simple_df.to_csv(os.path.join(script_dir,'EfectosSimples_Modelo_en_Sensor_Tukey.csv'), index=False)
 print("Efectos simples (Modelo dentro de Sensor) guardados.")
 
 print("\nPipeline completado con éxito.")
