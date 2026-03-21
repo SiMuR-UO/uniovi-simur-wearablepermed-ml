@@ -162,3 +162,47 @@ ef_simple_df.to_csv(os.path.join(script_dir,'EfectosSimples_Modelo_en_Sensor_Tuk
 print("Efectos simples (Modelo dentro de Sensor) guardados.")
 
 print("\nPipeline completado con éxito.")
+
+
+# ====================================================================================
+# 8. Efectos simples + post-hoc Tukey (inferencial) PARA TODOS LOS FACTORES Y NIVELES
+# ====================================================================================
+import pandas as pd
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
+
+factores = ["Modelo", "Sensor", "Config", "NumClases"]
+resultados = []
+
+# ---------------------------------------------
+# 1) Tukey global por cada factor principal
+# ---------------------------------------------
+for fac in factores:
+    tuk = pairwise_tukeyhsd(endog=df["F1"], groups=df[fac], alpha=0.05)
+    out = pd.DataFrame(tuk._results_table.data[1:], columns=tuk._results_table.data[0])
+    out["Factor"] = fac
+    out["Nivel"] = "GLOBAL"
+    resultados.append(out)
+
+# ---------------------------------------------
+# 2) Tukey por efectos simples (todas interacciones 2-way)
+# ---------------------------------------------
+from itertools import combinations
+
+for facA, facB in combinations(factores, 2):
+    # facA: factor sobre el que comparamos
+    # facB: factor dentro del cual comparamos
+    for nivel in df[facB].unique():
+        sub = df[df[facB] == nivel]
+        if len(sub[facA].unique()) < 2:
+            continue
+        tuk = pairwise_tukeyhsd(endog=sub["F1"], groups=sub[facA], alpha=0.05)
+        out = pd.DataFrame(tuk._results_table.data[1:], columns=tuk._results_table.data[0])
+        out["Factor"] = facA
+        out["Nivel"] = f"{facB}={nivel}"
+        resultados.append(out)
+
+# Unir todo y guardar
+df_tukey = pd.concat(resultados, ignore_index=True)
+df_tukey.to_csv(os.path.join(script_dir,"Tukey_completo_todos_factores.csv"), index=False)
+
+print("Análisis Tukey completo guardado en Tukey_completo_todos_factores.csv")

@@ -1,0 +1,68 @@
+group1,group2,meandiff,p-adj,lower,upper,reject,Factor,Nivel
+CNN CAPTURE-24,CNN ESANN,-0.0745,0.0,-0.0958,-0.0531,True,Modelo,GLOBAL
+CNN CAPTURE-24,Random Forest,0.0399,0.0,0.0185,0.0612,True,Modelo,GLOBAL
+CNN CAPTURE-24,XGBoost,0.0391,0.0,0.0178,0.0605,True,Modelo,GLOBAL
+CNN ESANN,Random Forest,0.1143,0.0,0.093,0.1357,True,Modelo,GLOBAL
+CNN ESANN,XGBoost,0.1136,0.0,0.0923,0.135,True,Modelo,GLOBAL
+Random Forest,XGBoost,-0.0007,0.9998,-0.0221,0.0206,False,Modelo,GLOBAL
+H,T,0.0573,0.0,0.0396,0.0749,True,Sensor,GLOBAL
+H,W,0.0736,0.0,0.056,0.0912,True,Sensor,GLOBAL
+T,W,0.0163,0.0763,-0.0013,0.034,False,Sensor,GLOBAL
+Acc,Acc+Gyro,0.0825,0.0,0.0708,0.0943,True,Config,GLOBAL
+4,15,-0.1384,0.0,-0.1486,-0.1281,True,NumClases,GLOBAL
+CNN CAPTURE-24,CNN ESANN,-0.1368,0.0,-0.178,-0.0956,True,Modelo,Sensor=T
+CNN CAPTURE-24,Random Forest,-0.0221,0.5093,-0.0634,0.0191,False,Modelo,Sensor=T
+CNN CAPTURE-24,XGBoost,-0.0193,0.6216,-0.0605,0.0219,False,Modelo,Sensor=T
+CNN ESANN,Random Forest,0.1146,0.0,0.0734,0.1558,True,Modelo,Sensor=T
+CNN ESANN,XGBoost,0.1175,0.0,0.0762,0.1587,True,Modelo,Sensor=T
+Random Forest,XGBoost,0.0028,0.998,-0.0384,0.044,False,Modelo,Sensor=T
+CNN CAPTURE-24,CNN ESANN,-0.0554,0.0,-0.0823,-0.0285,True,Modelo,Sensor=W
+CNN CAPTURE-24,Random Forest,0.0512,0.0,0.0242,0.0781,True,Modelo,Sensor=W
+CNN CAPTURE-24,XGBoost,0.0543,0.0,0.0274,0.0812,True,Modelo,Sensor=W
+CNN ESANN,Random Forest,0.1065,0.0,0.0796,0.1335,True,Modelo,Sensor=W
+CNN ESANN,XGBoost,0.1097,0.0,0.0828,0.1366,True,Modelo,Sensor=W
+Random Forest,XGBoost,0.0032,0.9902,-0.0237,0.0301,False,Modelo,Sensor=W
+CNN CAPTURE-24,CNN ESANN,-0.0313,0.1069,-0.0668,0.0043,False,Modelo,Sensor=H
+CNN CAPTURE-24,Random Forest,0.0906,0.0,0.055,0.1261,True,Modelo,Sensor=H
+CNN CAPTURE-24,XGBoost,0.0824,0.0,0.0469,0.118,True,Modelo,Sensor=H
+CNN ESANN,Random Forest,0.1218,0.0,0.0863,0.1574,True,Modelo,Sensor=H
+CNN ESANN,XGBoost,0.1137,0.0,0.0781,0.1492,True,Modelo,Sensor=H
+Random Forest,XGBoost,-0.0081,0.9349,-0.0437,0.0274,False,Modelo,Sensor=H
+CNN CAPTURE-24,CNN ESANN,-0.0698,0.0,-0.0995,-0.0401,True,Modelo,Config=Acc
+CNN CAPTURE-24,Random Forest,0.0825,0.0,0.0528,0.1122,True,Modelo,Config=Acc
+CNN CAPTURE-24,XGBoost,0.082,0.0,0.0523,0.1117,True,Modelo,Config=Acc
+CNN ESANN,Random Forest,0.1523,0.0,0.1226,0.182,True,Modelo,Config=Acc
+CNN ESANN,XGBoost,0.1518,0.0,0.1221,0.1815,True,Modelo,Config=Acc
+Random Forest,XGBoost,-0.0005,1.0,-0.0302,0.0292,False,Modelo,Config=Acc
+CNN CAPTURE-24,CNN ESANN,-0.0792,0.0,-0.1044,-0.0539,True,Modelo,Config=Acc+Gyro
+CNN CAPTURE-24,Random Forest,-0.0028,0.9922,-0.028,0.0225,False,Modelo,Config=Acc+Gyro
+CNN CAPTURE-24,XGBoost,-0.0037,0.9817,-0.029,0.0216,False,Modelo,Config=Acc+Gyro
+CNN ESANN,Random Forest,0.0764,0.0,0.0511,0.1016,True,Modelo,Config=Acc+Gyro
+CNN ESANN,XGBoost,0.0755,0.0,0.0502,0.1007,True,Modelo,Config=Acc+Gyro
+Random Forest,XGBoost,-0.0009,0.9997,-0.0262,0.0243,False,Modelo,Config=Acc+Gyro
+CNN CAPTURE-24,CNN ESANN,-0.126,0.0,-0.1506,-0.1013,True,Modelo,NumClases=15
+CNN CAPTURE-24,Random Forest,0.0344,0.0019,0.0098,0.0591,True,Modelo,NumClases=15
+CNN CAPTURE-24,XGBoost,0.0217,0.1074,-0.003,0.0463,False,Modelo,NumClases=15
+CNN ESANN,Random Forest,0.1604,0.0,0.1358,0.185,True,Modelo,NumClases=15
+CNN ESANN,XGBoost,0.1476,0.0,0.123,0.1722,True,Modelo,NumClases=15
+Random Forest,XGBoost,-0.0128,0.5408,-0.0374,0.0119,False,Modelo,NumClases=15
+CNN CAPTURE-24,CNN ESANN,-0.023,0.0297,-0.0445,-0.0016,True,Modelo,NumClases=4
+CNN CAPTURE-24,Random Forest,0.0453,0.0,0.0238,0.0667,True,Modelo,NumClases=4
+CNN CAPTURE-24,XGBoost,0.0566,0.0,0.0352,0.0781,True,Modelo,NumClases=4
+CNN ESANN,Random Forest,0.0683,0.0,0.0469,0.0897,True,Modelo,NumClases=4
+CNN ESANN,XGBoost,0.0796,0.0,0.0582,0.1011,True,Modelo,NumClases=4
+Random Forest,XGBoost,0.0113,0.5237,-0.0101,0.0328,False,Modelo,NumClases=4
+H,T,0.0951,0.0,0.0695,0.1207,True,Sensor,Config=Acc
+H,W,0.0821,0.0,0.0565,0.1077,True,Sensor,Config=Acc
+T,W,-0.013,0.4562,-0.0386,0.0126,False,Sensor,Config=Acc
+H,T,0.0194,0.0656,-0.001,0.0398,False,Sensor,Config=Acc+Gyro
+H,W,0.0651,0.0,0.0448,0.0855,True,Sensor,Config=Acc+Gyro
+T,W,0.0457,0.0,0.0254,0.0661,True,Sensor,Config=Acc+Gyro
+H,T,0.0081,0.6529,-0.0136,0.0298,False,Sensor,NumClases=15
+H,W,0.1003,0.0,0.0786,0.122,True,Sensor,NumClases=15
+T,W,0.0922,0.0,0.0705,0.1139,True,Sensor,NumClases=15
+H,T,0.1064,0.0,0.0907,0.1221,True,Sensor,NumClases=4
+H,W,0.0469,0.0,0.0311,0.0626,True,Sensor,NumClases=4
+T,W,-0.0595,0.0,-0.0753,-0.0438,True,Sensor,NumClases=4
+Acc,Acc+Gyro,0.0978,0.0,0.0832,0.1123,True,Config,NumClases=15
+Acc,Acc+Gyro,0.0673,0.0,0.0559,0.0788,True,Config,NumClases=4
